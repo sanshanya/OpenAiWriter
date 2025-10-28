@@ -1,44 +1,54 @@
 "use client";
 
 import * as React from "react";
-import { KEYS, type Value } from "platejs";
-import { MarkdownPlugin } from "@platejs/markdown";
+import { type Value } from "platejs";
 import { Plate } from "platejs/react";
 
 import { useEditorKit } from "@/components/editor/editor-kit";
 import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
 import { Editor, EditorContainer } from "@/components/ui/editor";
 import { useDocuments } from "@/hooks/use-documents";
-import { INITIAL_DOCUMENT_CONTENT } from "@/components/editor/initial-value";
-
 
 /**
- * This component is the core of the editor.
- * It is memoized and will only re-render when the active document is ready.
- * A key based on the document ID is used to force a full re-mount on document switch.
+ * 单文档编辑实例
+ * - 使用 docId 绑定 onChange，消灭“切换串台”竞态
+ * - key 用 docId，强制切换时完整重挂载
  */
-const EditorInstance = React.memo(({ document, onContentChange }: { document: any, onContentChange: (value: Value) => void }) => {
-  const initialValue = React.useMemo(() => document.content, [document.content]);
-  const { editor } = useEditorKit(initialValue);
-  useEditorHotkeys(editor);
+const EditorInstance = React.memo(
+  ({
+    docId,
+    content,
+    onContentChange,
+  }: {
+    docId: string;
+    content: Value;
+    onContentChange: (docId: string, value: Value) => void;
+  }) => {
+    const initialValue = React.useMemo(() => content, [content]);
+    const { editor } = useEditorKit(initialValue);
+    useEditorHotkeys(editor);
 
-  return (
-    <Plate
-      editor={editor}
-      onChange={({ value }) => onContentChange(value)}
-    >
-      <EditorContainer>
-        <Editor
-          variant="fullWidth"
-          className="w-full !max-w-none px-0"
-          placeholder="输入文本，按空格启用 AI，按 '/' 启用指令…"
-        />
-      </EditorContainer>
-    </Plate>
-  );
-});
-EditorInstance.displayName = 'EditorInstance';
+    const handleChange = React.useCallback(
+      ({ value }: { value: Value }) => {
+        onContentChange(docId, value); // 关键：携带 docId
+      },
+      [docId, onContentChange]
+    );
 
+    return (
+      <Plate editor={editor} onChange={handleChange}>
+        <EditorContainer>
+          <Editor
+            variant="fullWidth"
+            className="w-full !max-w-none px-0"
+            placeholder="输入文本，按空格启用 AI，按 '/' 启用指令…"
+          />
+        </EditorContainer>
+      </Plate>
+    );
+  }
+);
+EditorInstance.displayName = "EditorInstance";
 
 export function PlateEditor() {
   const { activeDocument, updateDocumentContent } = useDocuments();
@@ -56,8 +66,9 @@ export function PlateEditor() {
   return (
     <EditorInstance
       key={activeDocument.id}
-      document={activeDocument}
-      onContentChange={updateDocumentContent}
+      docId={activeDocument.id}
+      content={activeDocument.content}
+      onContentChange={updateDocumentContent} // (docId, value) 形式
     />
   );
 }

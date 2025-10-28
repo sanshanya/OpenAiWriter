@@ -1,6 +1,7 @@
-﻿<div align=center> <img src="https://sansme.oss-cn-beijing.aliyuncs.com/markdown/20251028002529587.png" width="360" height="480"></div>
+﻿
+<div align=center> <img src="https://sansme.oss-cn-beijing.aliyuncs.com/markdown/20251028002529587.png" width="360" height="480"></div>
 
-# 项目概述
+## 项目概述
 
 AI Writer UI（暂定名）是一套基于 Next. js App Router 与 Plate 生态构建的 AI 写作前端。目标是在可控的插件体系下，逐步搭载生成、润色、批注等能力，并保持"最小可行产品 + 按需扩展"的节奏。
 

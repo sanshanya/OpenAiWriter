@@ -9,9 +9,11 @@ import {
   DocumentsProvider,
   useDocuments,
 } from "@/hooks/use-documents";
+import { TrashDrawer } from "@/components/storage/trash-drawer";
 
 export default function Page() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [trashOpen, setTrashOpen] = React.useState(false);
 
   return (
     <DocumentsProvider>
@@ -30,7 +32,7 @@ export default function Page() {
           <aside className="hidden md:block">
             <div className="sticky top-[56px] h-[calc(100dvh-56px)] border-r border-neutral-200">
               <div className="relative h-full">
-                <DocumentSidebar onOpenSettings={() => setSettingsOpen(true)} />
+                <DocumentSidebar onOpenSettings={() => setSettingsOpen(true)} onOpenTrash={() => setTrashOpen(true)} />
               </div>
             </div>
           </aside>
@@ -64,6 +66,8 @@ export default function Page() {
             </div>
           </div>
         ) : null}
+
+        <TrashDrawer open={trashOpen} onOpenChange={setTrashOpen} />
       </EditorSettingsProvider>
     </DocumentsProvider>
   );
@@ -71,8 +75,10 @@ export default function Page() {
 
 function DocumentSidebar({
   onOpenSettings,
+  onOpenTrash,
 }: {
   onOpenSettings: () => void;
+  onOpenTrash: () => void;
 }) {
   const {
     documents,
@@ -166,7 +172,14 @@ function DocumentSidebar({
         )}
       </section>
 
-      <section className="mt-auto">
+      <section className="mt-auto space-y-2">
+        <button
+          type="button"
+          onClick={onOpenTrash}
+          className="inline-flex w-full items-center justify-center rounded-md border border-neutral-300 px-3 py-2 text-xs font-medium text-neutral-700 transition hover:border-neutral-400 hover:text-neutral-900"
+        >
+          回收站
+        </button>
         <button
           type="button"
           onClick={onOpenSettings}

@@ -95,3 +95,42 @@ export function markIndexedDBSyncedNow() {
     localStorage.setItem("aiwriter:idb:lastSync", String(Date.now()));
   } catch {}
 }
+
+// ✅ 新增：按 id 删除
+export async function deleteFromIndexedDB(id: string): Promise<void> {
+  const db = await openDB();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    tx.objectStore(STORE_NAME).delete(id);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+}
+
+// ✅ 新增：按墓碑时间批量清理，返回删除数
+export async function purgeDeletedOlderThan(cutoffMs: number): Promise<number> {
+  const db = await openDB();
+  let removed = 0;
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    const store = tx.objectStore(STORE_NAME);
+    const index = store.index("by_deletedAt"); // 依赖之前创建的索引
+    const range = IDBKeyRange.upperBound(cutoffMs, true);
+    const cursorReq = index.openCursor(range);
+    cursorReq.onsuccess = () => {
+      const cursor = cursorReq.result;
+      if (!cursor) return;
+      const rec: any = cursor.value;
+      if (typeof rec.deletedAt === "number" && rec.deletedAt < cutoffMs) {
+        store.delete(rec.id);
+        removed++;
+      }
+      cursor.continue();
+    };
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  return removed;
+}

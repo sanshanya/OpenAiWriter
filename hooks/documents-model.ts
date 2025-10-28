@@ -15,7 +15,11 @@ export type Action =
   | { type: "SELECT"; id: string }
   | { type: "CREATE"; now: number }
   | { type: "UPDATE_CONTENT"; id: string; value: Value; now: number }
-  | { type: "DELETE_SOFT"; id: string; now: number };
+  | { type: "DELETE_SOFT"; id: string; now: number }
+  | { type: "RESTORE"; id: string; now: number }
+  | { type: "PURGE"; id: string }
+  | { type: "APPLY_SERVER_STATE"; id: string; server: { title?: string; content: any; version: number; updatedAt: number; deletedAt?: number | null } }
+  | { type: "BUMP_VERSION"; id: string; toVersion: number; now: number };
 
 export function documentsReducer(state: ModelState, action: Action): ModelState {
   switch (action.type) {
@@ -67,6 +71,58 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
         .filter(d => !(d as any).deletedAt)
         .sort((a, b) => b.updatedAt - a.updatedAt)[0];
       return { docs, activeId: next?.id ?? null };
+    }
+
+    case "RESTORE": {
+      const { id, now } = action;
+      const docs = state.docs.map(d =>
+        d.id === id && (d as any).deletedAt
+          ? { ...(d as any), deletedAt: undefined, updatedAt: now, version: (d.version ?? 1) + 1 }
+          : d
+      );
+      return { ...state, docs, activeId: id };
+    }
+
+    case "PURGE": {
+      const docs = state.docs.filter(d => d.id !== action.id);
+      const activeId =
+        state.activeId === action.id
+          ? docs.find(d => !(d as any).deletedAt)?.id ?? null
+          : state.activeId;
+      return { ...state, docs, activeId };
+    }
+
+    case "APPLY_SERVER_STATE": {
+      const { id, server } = action;
+      const docs = state.docs.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              title: server.title ?? d.title,
+              content: server.content,
+              version: server.version,
+              updatedAt: server.updatedAt,
+              // @ts-ignore
+              deletedAt: server.deletedAt ?? undefined,
+            }
+          : d
+      );
+      // 若目标被服务器删除，activeId 换到下一个未删除文档
+      const activeId =
+        (docs.find((x) => x.id === id && !(x as any).deletedAt) && id) ||
+        docs.find((x) => !(x as any).deletedAt)?.id ||
+        null;
+      return { ...state, docs, activeId };
+    }
+
+    case "BUMP_VERSION": {
+      const { id, toVersion, now } = action;
+      const docs = state.docs.map((d) =>
+        d.id === id
+          ? { ...d, version: toVersion, updatedAt: now }
+          : d
+      );
+      return { ...state, docs };
     }
   }
 }

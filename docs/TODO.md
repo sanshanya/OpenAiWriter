@@ -71,34 +71,41 @@ This stage transitions from a separate AI panel to a deeply integrated, contextu
 - [X] **`plate-editor.tsx` 精简**：通过 DocumentsProvider + Hooks 收敛持久化与快捷键逻辑，仅保留粘贴处理与渲染。
 
 ### 类型集中管理（新增）
+
 - [ ] `types/plate-elements.ts`：整理当前项目启用插件的 Plate 节点/文本类型，作为类型真源，新增/裁剪插件时同步维护。
 
---- 
+---
 
 ## Stage 5: 数据持久化与高级特性
 
 > 目标：在保持前端流畅体验的同时，提供可靠的后端持久化与导入导出能力，为后续 AI 编排和多端协作打基础。
 
 ### 5.1 双层持久化基线
+
 - [X] **本地草稿 Hook**：完成 `hooks/use-documents.tsx`，以 IndexedDB 优先、localStorage 兜底的方式管理多文档草稿。
 - [ ] **远程权威存储**：设计 PostgreSQL 表结构（`documents` 存 Markdown、`document_blocks` 缓存 block JSON、`document_revisions` 记录版本、`document_assets` 记录资源、`document_ai_logs` 记录 AI 操作）。
 - [ ] **保存流程**：前端提交编辑内容 → 后端校验版本 → 先写数据库 → 返回成功并广播更新；如版本冲突，返回需合并的块级 diff。
 
 ### 5.2 导入导出与附件
+
 - [ ] **Markdown 导入/导出**：复用 Plate 序列化管线，导入时生成新版 Markdown 与 block 快照；导出支持单篇与批量。
 - [ ] **HTML 导出**：基于只读渲染或服务端转换提供自包含 HTML 文件（含 CSS 引用）。
 - [ ] **多媒体上传**：集成 UploadThing/S3；上传后写入 `document_assets`，正文仅存引用 URL，并在导出时可选择打包资源。
 
 ### 5.3 AI 编排迁移
+
 - [ ] **后端编排服务**：将 `/api/ai/*` 的核心逻辑迁移到后端服务，负责调用模型、写库、记录日志。
 - [ ] **Block 级并发**：AI 请求按 block 拆分（block id + 选区），支持并发处理、返回分批结果。
 - [ ] **结果落库**：AI 生成的文本、评论、建议等先写数据库，再推送给前端（SSE/WebSocket）。
 
 ### 5.4 后续优化
+
 - [ ] **版本与协同预研**：调研 block 级版本合并策略（哈希/CRDT），为多人协同奠定基础。
 - [ ] **安全合规**：梳理 key 管理、日志脱敏及模型调用审计需求。
 - [ ] **监控与重放**：为 AI 调用增加指标、错误日志，并保留重放数据以抽查质量。
 
 ---
 
-## Future UI/UX Optimizations（略）
+## Future UI/UX Optimizations
+
+目前存在markdown与html混合形态下无法粘贴至编辑器的问题
