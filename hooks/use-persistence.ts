@@ -15,6 +15,7 @@ export type StoredDocument = {
   createdAt: number;
   updatedAt: number;
   version: number;
+  deletedAt?: number; // ← 新增：墓碑（软删除标记），ms 时间戳
 };
 
 // --- Helper Functions ---
@@ -52,6 +53,7 @@ function sanitizeStoredDocument(raw: any): StoredDocument | null {
     createdAt: typeof raw.createdAt === "number" ? raw.createdAt : Date.now(),
     updatedAt: typeof raw.updatedAt === "number" ? raw.updatedAt : Date.now(),
     version: typeof raw.version === "number" ? raw.version : 1,
+    deletedAt: typeof raw.deletedAt === "number" ? raw.deletedAt : undefined, // ← 新增
   };
 }
 

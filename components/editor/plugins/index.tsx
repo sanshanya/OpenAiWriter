@@ -23,6 +23,10 @@ import { FixedToolbarKit } from "./system/fixed-toolbar-kit";
 import { FloatingToolbarKit } from "./system/floating-toolbar-kit";
 import { BlockMenuKit } from "./system/block-menu-kit";
 
+// stage 5 add
+import { BlockPlaceholderKit } from "./system/block-placeholder-kit";
+
+
 type PluginCategory = "core" | "markdown" | "system";
 
 type PluginKit = {
@@ -232,6 +236,15 @@ const pluginKits: PluginKit[] = [
     enabledByDefault: true,
     plugins: BlockMenuKit,
   },
+  {
+    id: "block-placeholder",
+    label: "Block Placeholder",
+    description: "块提示",
+    category: "system",
+    optional: true,
+    enabledByDefault: true,
+    plugins: BlockPlaceholderKit,
+  }
 ];
 
 export type OptionalPluginGroup = Omit<PluginKit, "plugins"> & {

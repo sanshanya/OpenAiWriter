@@ -1,13 +1,12 @@
-﻿
+﻿<div align=center> <img src="https://sansme.oss-cn-beijing.aliyuncs.com/markdown/20251028002529587.png" width="360" height="480"></div>
+
 # 项目概述
 
-AI Writer UI（暂定名）是一套基于 Next.js App Router 与 Plate 生态构建的 AI 写作前端。目标是在可控的插件体系下，逐步搭载生成、润色、批注等能力，并保持"最小可行产品 + 按需扩展"的节奏。
+AI Writer UI（暂定名）是一套基于 Next. js App Router 与 Plate 生态构建的 AI 写作前端。目标是在可控的插件体系下，逐步搭载生成、润色、批注等能力，并保持"最小可行产品 + 按需扩展"的节奏。
 
-- 前端框架：Next.js 16 + React 19
+- 前端框架：Next. js 16 + React 19
 - 富文本内核：Plate（`@platejs/basic-nodes` + 自定义 UI 映射）
 - UI 体系：Tailwind 新工作流 + shadcn 风格组件（自建）
-
-<div align=center> <img src="./docs/AIWRITER.PNG" width="360" height="480"></div>
 
 ## 快速启动
 
@@ -20,7 +19,7 @@ pnpm dev
 
 ## 目录指引
 
-- docs文件夹内放有本项目开发目录
+- docs 文件夹内放有本项目开发目录
 - 围绕其中 `TODO.md` 中的阶段任务推进，阶段完成后进行复盘与下一步确认。
 
 ## AI 模块规划
