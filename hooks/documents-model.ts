@@ -3,7 +3,10 @@
 
 import { nanoid, NodeApi, type Value } from "platejs";
 import type { StoredDocument } from "@/hooks/use-persistence";
-import { INITIAL_DOCUMENT_CONTENT, INITIAL_DOCUMENT_TITLE } from "@/components/editor/initial-value";
+import {
+  INITIAL_DOCUMENT_CONTENT,
+  INITIAL_DOCUMENT_TITLE,
+} from "@/components/editor/initial-value";
 
 export type ModelState = {
   docs: StoredDocument[];
@@ -11,26 +14,51 @@ export type ModelState = {
 };
 
 export type Action =
-  | { type: "INIT"; docs: StoredDocument[] }
+  | { type: "INIT"; docs: StoredDocument[]; activeId?: string | null }
   | { type: "SELECT"; id: string }
   | { type: "CREATE"; now: number }
   | { type: "UPDATE_CONTENT"; id: string; value: Value; now: number }
   | { type: "DELETE_SOFT"; id: string; now: number }
   | { type: "RESTORE"; id: string; now: number }
   | { type: "PURGE"; id: string }
-  | { type: "APPLY_SERVER_STATE"; id: string; server: { title?: string; content: any; version: number; updatedAt: number; deletedAt?: number | null } }
+  | {
+      type: "APPLY_SERVER_STATE";
+      id: string;
+      server: {
+        title?: string;
+        content: any;
+        version: number;
+        updatedAt: number;
+        deletedAt?: number | null;
+      };
+    }
   | { type: "BUMP_VERSION"; id: string; toVersion: number; now: number };
 
 export function documentsReducer(state: ModelState, action: Action): ModelState {
   switch (action.type) {
     case "INIT": {
       const docs = [...action.docs].sort((a, b) => b.updatedAt - a.updatedAt);
-      const first = docs.find(d => !("deletedAt" in d && (d as any).deletedAt));
-      return { docs, activeId: first?.id ?? null };
+
+      // 事务型 INIT：若 action 指定了 activeId，则优先采用
+      let activeId: string | null;
+      if (Object.prototype.hasOwnProperty.call(action, "activeId")) {
+        activeId = action.activeId ?? null;
+      } else {
+        // 回退：沿用现有 activeId（若仍存在），否则选择第一篇未删除
+        activeId =
+          (state.activeId &&
+            docs.some((d) => d.id === state.activeId) &&
+            state.activeId) ||
+          docs.find((d) => !(d as any).deletedAt)?.id ||
+          null;
+      }
+      return { docs, activeId };
     }
+
     case "SELECT": {
       return { ...state, activeId: action.id };
     }
+
     case "CREATE": {
       const now = action.now;
       const content = cloneValue(INITIAL_DOCUMENT_CONTENT);
@@ -45,9 +73,10 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
       const docs = [doc, ...state.docs];
       return { docs, activeId: doc.id };
     }
+
     case "UPDATE_CONTENT": {
       const { id, value, now } = action;
-      const docs = state.docs.map(d =>
+      const docs = state.docs.map((d) =>
         d.id === id
           ? {
               ...d,
@@ -60,34 +89,45 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
       );
       return { ...state, docs };
     }
+
     case "DELETE_SOFT": {
       const { id, now } = action;
-      const docs = state.docs.map(d =>
+      const docs = state.docs.map((d) =>
         d.id === id && !(d as any).deletedAt
-          ? { ...(d as any), deletedAt: now, updatedAt: now, version: (d.version ?? 1) + 1 }
+          ? {
+              ...(d as any),
+              deletedAt: now,
+              updatedAt: now,
+              version: (d.version ?? 1) + 1,
+            }
           : d
       );
-      const next = docs
-        .filter(d => !(d as any).deletedAt)
+      const nextActive = docs
+        .filter((d) => !(d as any).deletedAt)
         .sort((a, b) => b.updatedAt - a.updatedAt)[0];
-      return { docs, activeId: next?.id ?? null };
+      return { docs, activeId: nextActive?.id ?? null };
     }
 
     case "RESTORE": {
       const { id, now } = action;
-      const docs = state.docs.map(d =>
+      const docs = state.docs.map((d) =>
         d.id === id && (d as any).deletedAt
-          ? { ...(d as any), deletedAt: undefined, updatedAt: now, version: (d.version ?? 1) + 1 }
+          ? {
+              ...(d as any),
+              deletedAt: undefined,
+              updatedAt: now,
+              version: (d.version ?? 1) + 1,
+            }
           : d
       );
       return { ...state, docs, activeId: id };
     }
 
     case "PURGE": {
-      const docs = state.docs.filter(d => d.id !== action.id);
+      const docs = state.docs.filter((d) => d.id !== action.id);
       const activeId =
         state.activeId === action.id
-          ? docs.find(d => !(d as any).deletedAt)?.id ?? null
+          ? docs.find((d) => !(d as any).deletedAt)?.id ?? null
           : state.activeId;
       return { ...state, docs, activeId };
     }
@@ -107,7 +147,7 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
             }
           : d
       );
-      // 若目标被服务器删除，activeId 换到下一个未删除文档
+      // 若目标被服务器删除，activeId 换到下一个未删除文档；否则保持不变/继续指向 id
       const activeId =
         (docs.find((x) => x.id === id && !(x as any).deletedAt) && id) ||
         docs.find((x) => !(x as any).deletedAt)?.id ||
@@ -118,9 +158,7 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
     case "BUMP_VERSION": {
       const { id, toVersion, now } = action;
       const docs = state.docs.map((d) =>
-        d.id === id
-          ? { ...d, version: toVersion, updatedAt: now }
-          : d
+        d.id === id ? { ...d, version: toVersion, updatedAt: now } : d
       );
       return { ...state, docs };
     }

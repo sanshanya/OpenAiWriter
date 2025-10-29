@@ -1,8 +1,11 @@
-﻿// .\app\layout.tsx
+﻿// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+
+// ✅ 引入副作用组件（Client）
+import { SyncBootstrap } from "@/app/_bootstrap/SyncBootstrap";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,6 +32,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} bg-neutral-50 text-neutral-900 antialiased`}
       >
+        {/* ✅ 仅在浏览器且开关开启时初始化 Leader + 同步循环 */}
+        <SyncBootstrap />
         {children}
       </body>
     </html>

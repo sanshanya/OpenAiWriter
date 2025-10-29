@@ -49,3 +49,6 @@ package-lock.json
 .idea
 .gemini
 .kilocode
+test/test-use-documents
+backup
+测试速览.md
