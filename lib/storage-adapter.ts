@@ -33,16 +33,26 @@ import { appendOutboxForChanged } from "@/lib/outbox";
 
 const DELETION_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 天
 
+// 状态位：如果 localStorage 写入失败（如 quota 满），则降级为 IDB-only
+let LOCAL_WRITE_ENABLED = true;
+
 // ========== 公共导出 ==========
 
 // 1) 首轮跳过远端；changed→IDB + Outbox；按开关选择远端策略
 export async function persistAll(
   prevDocs: StoredDocument[],
   nextDocs: StoredDocument[],
-  opts?: { skipRemote?: boolean }
+  opts?: { skipRemote?: boolean },
 ): Promise<void> {
   // 1) localStorage（整包）
-  saveAllDocuments(nextDocs);
+  if (LOCAL_WRITE_ENABLED) {
+    try {
+      saveAllDocuments(nextDocs);
+    } catch (e) {
+      console.warn("[Storage] localStorage quota exceeded, falling back to IDB-only.", e);
+      LOCAL_WRITE_ENABLED = false;
+    }
+  }
 
   // 2) IDB 增量写 + Outbox 事件
   const prevSig = new Map(prevDocs.map((d) => [d.id, sigOf(d)]));

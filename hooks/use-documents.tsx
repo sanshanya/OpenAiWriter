@@ -60,6 +60,9 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   // 各 doc 的内容快照，避免无谓 UPDATE（去重）
   const lastSavedSnapshot = React.useRef<Record<string, string>>({});
 
+  // 用于 rAF 的引用，以合并同一帧内的多次 onChange 快照更新
+  const rafIdRef = React.useRef<number | null>(null);
+
   // 灾难恢复弹窗
   const [recoveryOpen, setRecoveryOpen] = React.useState(false);
   const [recoveryList, setRecoveryList] = React.useState<
@@ -233,15 +236,23 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
   // 关键：携带 docId，晚到的 onChange 也只会落在“自己的文档”上
   const updateDocumentContent = React.useCallback((docId: string, value: Value) => {
-    const snapshot = JSON.stringify(value);
-    if (lastSavedSnapshot.current[docId] === snapshot) return; // 去重
-    lastSavedSnapshot.current[docId] = snapshot;
+    // 立即进入 reducer，确保 SSoT（Single Source of Truth）不被延迟
     dispatch({
       type: "UPDATE_CONTENT",
       id: docId,
       value,
       now: Date.now(),
     } as Action);
+
+    // 去重快照的生成延后到 rAF，以合并同一帧内的多次 onChange
+    if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+    rafIdRef.current = requestAnimationFrame(() => {
+      const snapshot = JSON.stringify(value);
+      // 只有当新快照与旧快照不同时才更新，避免不必要的持久化触发
+      if (lastSavedSnapshot.current[docId] !== snapshot) {
+        lastSavedSnapshot.current[docId] = snapshot;
+      }
+    });
   }, []);
 
   const deleteDocument = React.useCallback((id: string) => {
