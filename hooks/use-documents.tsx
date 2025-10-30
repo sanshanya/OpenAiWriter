@@ -4,40 +4,23 @@
 import * as React from "react";
 import { type Value } from "platejs";
 import { DisasterRecoveryDialog } from "@/components/storage/disaster-recovery-dialog";
-import { onConflicts, type Conflict as SyncConflict } from "@/lib/remote-sync";
 import { ConflictDialog } from "@/components/storage/conflict-dialog";
+import { deriveTitle, type DocumentMeta, type DocumentRecord } from "@/types/storage";
+import * as Storage from "@/lib/storage";
+import type { SyncConflict } from "@/lib/storage";
 
-// ✅ LS 只存 meta / 按需读内容
-import { idbGetDoc } from "@/lib/idb";
-import { loadMetas } from "@/lib/meta-cache";
+const createPlaceholderContent = (): Value => [] as Value;
 
-// ✅ 持久化与恢复（IDB 主存；远端解耦）
-import {
-  persistDocChange,
-  saveMetas, // 轻量 debounce 写入 localStorage（只写 metas）
-  getIDBRecoveryMetas,
-  removeDocsFromIDB, // PURGE 时物理删除 IDB
-  loadAllFromIDB,
-  makeDefaultDoc,
-} from "@/lib/storage-adapter";
+const toMeta = (doc: DocumentRecord): DocumentMeta => ({
+  id: doc.id,
+  title: doc.title,
+  createdAt: doc.createdAt,
+  updatedAt: doc.updatedAt,
+  version: doc.version,
+  deletedAt: doc.deletedAt ?? null,
+});
 
-import {
-  documentsReducer,
-  type ModelState,
-  type Action,
-} from "@/hooks/documents-model";
-
-/** 在本文件统一定义文档形状，避免对旧 use-persistence 的耦合 */
-export type DocumentRecord = {
-  id: string;
-  title: string;
-  createdAt: number;
-  updatedAt: number;
-  version: number;
-  deletedAt?: number | null;
-  content: Value;
-};
-type DocumentMeta = Omit<DocumentRecord, "content">;
+import { documentsReducer, type ModelState } from "@/hooks/documents-model";
 
 type DocumentsContextValue = {
   documents: DocumentMeta[];
@@ -88,7 +71,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
       if (loadedContentRef.current.has(id)) return;
 
       try {
-        const snap = await idbGetDoc(id);
+        const snap = await Storage.idbGetDoc(id);
         if (snap) {
           loadedContentRef.current.add(id);
           // 不增版本的水合：用 APPLY_SERVER_STATE 覆盖
@@ -100,9 +83,9 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
               content: snap.content,
               version: snap.version,
               updatedAt: snap.updatedAt,
-              deletedAt: (snap as any).deletedAt ?? undefined,
+              deletedAt: snap.deletedAt ?? undefined,
             },
-          } as Action);
+          });
         } else {
           // IDB 无该文档（极少数旧态/首次写入前）：也标记为已加载，避免占位误写回
           loadedContentRef.current.add(id);
@@ -122,7 +105,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   React.useEffect(() => {
     (async () => {
       // 1) 启动时只加载 metas，保证快速启动
-      const metas = loadMetas();
+      const metas = Storage.loadMetas();
 
       if (metas.length > 0) {
         // 选出默认要“选中”的那一篇（优先未删除且最近更新）
@@ -132,27 +115,22 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
             .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? metas[0];
 
         // 先水合这篇（在内存准备真实内容）
-        const snap = await idbGetDoc(firstLiveMeta.id); // 可能为 null（旧态或首次）
+        const snap = await Storage.idbGetDoc(firstLiveMeta.id); // 可能为 null（旧态或首次）
         const hydratedFirst: DocumentRecord = {
           id: firstLiveMeta.id,
           title: (snap?.title ?? firstLiveMeta.title) || "(未命名)",
-          createdAt: (firstLiveMeta as any).createdAt ?? firstLiveMeta.updatedAt,
+          createdAt: firstLiveMeta.createdAt ?? firstLiveMeta.updatedAt,
           updatedAt: snap?.updatedAt ?? firstLiveMeta.updatedAt,
           version: snap?.version ?? firstLiveMeta.version,
-          deletedAt:
-            (snap as any)?.deletedAt ?? (firstLiveMeta as any).deletedAt,
-          content: (snap?.content as Value) ?? ([] as any),
+          deletedAt: snap?.deletedAt ?? firstLiveMeta.deletedAt ?? undefined,
+          content: snap?.content ?? createPlaceholderContent(),
         };
 
         // 其它文档先占位（content: []），等用户点开时再懒加载
         const initialDocs: DocumentRecord[] = metas.map((m) =>
           m.id === hydratedFirst.id
             ? hydratedFirst
-            : ({
-                ...m,
-                createdAt: (m as any).createdAt ?? m.updatedAt,
-                content: [], // 占位
-              } as DocumentRecord)
+            : { ...m, content: createPlaceholderContent() }
         );
 
         // 标记默认选中文档为已加载（避免被占位覆盖回 IDB）
@@ -163,13 +141,13 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
           type: "INIT",
           docs: initialDocs,
           activeId: hydratedFirst.id,
-        } as Action);
+        });
 
         return;
       }
 
       // 2) LS 为空：探测 IDB 是否有可恢复文档（只列未删除，用对话框询问）
-      const recoverMetas = await getIDBRecoveryMetas(); // 仅未删除文档
+      const recoverMetas = await Storage.getIDBRecoveryMetas(); // 仅未删除文档
       if (recoverMetas.length > 0) {
         setRecoveryList(recoverMetas);
         setRecoveryOpen(true);
@@ -177,21 +155,21 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
       }
 
       // 3) 完全冷启动：新建默认文档（它是完整文档，直接视为已加载）
-      const first = makeDefaultDoc();
+      const first = Storage.makeDefaultDoc();
       loadedContentRef.current.add(first.id);
       dispatch({
         type: "INIT",
         docs: [first],
         activeId: first.id,
-      } as Action);
+      });
     })().catch((e) => console.warn("[Init] fail", e));
   }, [dispatch]);
 
   // 灾难恢复执行：从 IDB 拉全部（含已删除，供回收站），空则兜底新建
   const handleRecoverFromIDB = React.useCallback(async () => {
     try {
-      const all = await loadAllFromIDB();
-      const docs = all.length > 0 ? all : [makeDefaultDoc()];
+      const all = await Storage.loadAllFromIDB();
+      const docs = all.length > 0 ? all : [Storage.makeDefaultDoc()];
       // 整批都是完整快照 → 视为已加载
       loadedContentRef.current = new Set(docs.map((d) => d.id));
       // 恢复后给一个默认选择（最新未删除）
@@ -199,7 +177,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         docs
           .filter((d) => !d.deletedAt)
           .sort((a, b) => b.updatedAt - a.updatedAt)[0] ?? docs[0];
-      dispatch({ type: "INIT", docs, activeId: firstLive.id } as Action);
+      dispatch({ type: "INIT", docs, activeId: firstLive.id });
     } finally {
       setRecoveryOpen(false);
     }
@@ -224,7 +202,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     // 订阅远端冲突
-    const off = onConflicts((arr) => {
+    const off = Storage.onConflicts((arr) => {
       // 把服务器返回的冲突补上本地标题/预览
       const byId: Record<string, SyncConflict> = {};
       arr.forEach((c) => (byId[c.id] = c));
@@ -235,12 +213,8 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         let serverPreview = "";
         try {
           const parsed = JSON.parse(c.serverContent);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            const node = parsed[0];
-            const text = (
-              node?.children?.map((x: any) => x.text).join("") ?? ""
-            ).trim();
-            serverPreview = text.slice(0, 80);
+          if (Array.isArray(parsed)) {
+            serverPreview = deriveTitle(parsed as Value, "").slice(0, 80);
           }
         } catch {}
         return {
@@ -271,8 +245,8 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   const documents: DocumentMeta[] = React.useMemo(
     () =>
       state.docs
-        .filter((d: any) => !d.deletedAt)
-        .map(({ content: _c, ...meta }) => meta)
+        .filter((d) => d.deletedAt == null)
+        .map((doc) => toMeta(doc))
         .sort((a, b) => b.updatedAt - a.updatedAt),
     [state.docs]
   );
@@ -280,18 +254,11 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   const trashedDocuments = React.useMemo(
     () =>
       state.docs
-        .filter((d: any) => typeof d.deletedAt === "number")
-        .map(
-          ({ content: _c, ...meta }) =>
-            meta as any as {
-              id: string;
-              title: string;
-              createdAt: number;
-              updatedAt: number;
-              version: number;
-              deletedAt: number;
-            }
-        )
+        .filter((d) => typeof d.deletedAt === "number")
+        .map((doc) => ({
+          ...toMeta(doc),
+          deletedAt: doc.deletedAt as number,
+        }))
         .sort((a, b) => b.deletedAt - a.deletedAt),
     [state.docs]
   );
@@ -310,9 +277,9 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
     // 1) 保存 metas（轻量、排序稳定）
     const metas: DocumentMeta[] = next
-      .map(({ content: _c, ...meta }) => meta)
+      .map((doc) => toMeta(doc))
       .sort((a, b) => b.updatedAt - a.updatedAt);
-    saveMetas(metas);
+    Storage.saveMetas(metas);
 
     // 1.5) 物理删除：prev 有而 next 没有的 ID
     if (prev.length > 0) {
@@ -324,7 +291,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
       });
       if (removedIds.length > 0) {
         // best-effort，别 await，避免阻塞渲染
-        removeDocsFromIDB(removedIds);
+        Storage.removeDocsFromIDB(removedIds);
       }
     }
 
@@ -350,7 +317,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         old.title !== doc.title;
       if (changed) {
         const { content, ...meta } = doc;
-        persistDocChange(meta, content);
+        Storage.persistDocChange(meta, content);
       }
     }
 
@@ -362,7 +329,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   // =========================
   const createDocument = React.useCallback(() => {
     const now = Date.now();
-    dispatch({ type: "CREATE", now } as Action);
+    dispatch({ type: "CREATE", now });
     // 新建文档由 reducer 生成完整内容，视为已加载；
     // 下一轮 effect 会把它持久化
   }, [dispatch]);
@@ -371,7 +338,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       // 关键：为避免“点开空白”，先水合，再 SELECT
       await hydrateDocContent(id);
-      dispatch({ type: "SELECT", id } as Action);
+      dispatch({ type: "SELECT", id });
     },
     [hydrateDocContent, dispatch]
   );
@@ -384,7 +351,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         id: docId,
         value,
         now: Date.now(),
-      } as Action);
+      });
       // 若该 doc 尚未标记为已加载（理论上选中后会标记），兜底：
       if (!loadedContentRef.current.has(docId)) {
         loadedContentRef.current.add(docId);
@@ -395,21 +362,21 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
   const deleteDocument = React.useCallback(
     (id: string) => {
-      dispatch({ type: "DELETE_SOFT", id, now: Date.now() } as Action);
+      dispatch({ type: "DELETE_SOFT", id, now: Date.now() });
     },
     [dispatch]
   );
 
   const restoreDocument = React.useCallback(
     (id: string) => {
-      dispatch({ type: "RESTORE", id, now: Date.now() } as Action);
+      dispatch({ type: "RESTORE", id, now: Date.now() });
     },
     [dispatch]
   );
 
   const purgeDocument = React.useCallback(
     (id: string) => {
-      dispatch({ type: "PURGE", id } as Action);
+      dispatch({ type: "PURGE", id });
     },
     [dispatch]
   );
@@ -418,11 +385,14 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
     (id: string) => {
       const c = conflictItems.byId[id];
       if (!c) return;
-      let content: any = [];
+      let content: Value = createPlaceholderContent();
       try {
-        content = JSON.parse(c.serverContent);
+        const parsed = JSON.parse(c.serverContent);
+        if (Array.isArray(parsed)) {
+          content = parsed as Value;
+        }
       } catch {
-        content = [];
+        content = createPlaceholderContent();
       }
       loadedContentRef.current.add(id); // 服务器状态落地后，视为已加载
       dispatch({
@@ -435,7 +405,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
           updatedAt: c.serverUpdatedAt,
           deletedAt: c.serverDeletedAt ?? undefined,
         },
-      } as Action);
+      });
       // 关闭对话框（若全部处理完）
       setConflictItems((prev) => {
         const next = prev.list.filter((x) => x.id !== id);
@@ -455,7 +425,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         id,
         toVersion: serverVersion + 1,
         now: Date.now(),
-      } as Action);
+      });
       setConflictItems((prev) => {
         const next = prev.list.filter((x) => x.id !== id);
         if (next.length === 0) setConflictsOpen(false);

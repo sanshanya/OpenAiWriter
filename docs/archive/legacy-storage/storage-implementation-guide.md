@@ -1,0 +1,525 @@
+
+# 存储系统推进细则 (Storage Implementation Guide) - 优化版
+
+> 基于 V1/V2/V3 的经验教训，以辩证视角审视并优化实施方案
+
+## 核心原则
+
+本细则旨在将 V3 的成功模式固化，并在此基础上，以**安全、渐进、可回滚**的方式扩展系统的持久化能力。所有阶段的推进，都必须严格遵守 "React State 为唯一真源" 和 "数据单向流动" 的核心思想。
+
+**新增原则**：
+
+- **可观测性优先**：每个阶段都要有清晰的监控和日志
+- **灰度发布思维**：新功能应该有开关，可以快速回滚
+- **用户体验不降级**：任何新特性的失败都不应影响现有体验
+
+---
+
+## 阶段一：巩固 V3 基础，建立"不可动摇"的本地体验
+
+### 目标
+
+将当前成功的 V3 模式代码化、文档化、测试化，使其成为未来所有迭代的稳定基石。
+
+### 具体步骤
+
+#### 1. 建立测试金字塔（改进：不只是单元测试）
+
+**单元测试** (`vitest` / `jest`)
+
+- 对象：`hooks/use-documents.tsx`
+- 关键测试用例：
+  - `createDocument()`: 正确创建并激活新文档
+  - `selectDocument()`: 切换文档后状态正确更新
+  - `updateDocumentContent()`: 内容更新后 State 与 localStorage 一致
+  - **（核心）快速连续操作**：模拟"输入 → 切换 → 再切换回来"，验证数据完整性
+  - **边界情况**：空文档、超大文档(>1MB)、特殊字符
+
+**集成测试** (新增)
+
+- 对象：`PlateEditor` + `DocumentsProvider` 的组合
+- 关键场景：
+  - 冷启动：localStorage 空 → 创建默认文档 → 可编辑
+  - 热启动：localStorage 有缓存 → 正确加载 → 可编辑
+  - 刷新恢复：编辑中刷新 → 内容不丢失
+  - **多标签页并发**（新增）：两个标签页同时编辑同一文档，localStorage 的变更事件是否正确处理
+
+**手动测试清单** (新增)
+
+- [ ] 快速连续切换 10 次文档（ctrl+1~9），无卡顿、无数据丢失
+- [ ] 输入 1000 字后立即关闭浏览器，重新打开后内容完整
+- [ ] 打开 DevTools → Application → Clear Storage，刷新后应显示默认文档
+
+**改进理由**：
+
+- V2 失败的教训：只写代码不测试，或只在浏览器手动测试
+- 单元测试无法覆盖组件间交互和真实浏览器环境
+- 手动测试清单确保人工也能快速验证核心功能
+
+#### 2. 完善核心类型定义
+
+**位置选择**（辩证分析）：
+
+- `types/plate-elements.ts`：用于 Plate.js 编辑器节点类型（如 ParagraphElement, HeadingElement）
+- **新建** `types/storage.ts`：用于文档管理相关类型
+
+```typescript
+// types/storage.ts
+/**
+ * 文档记录的核心类型
+ * 这是 React State 的数据模型，也是持久化的基础单元
+ */
+export interface DocumentRecord {
+  id: string;              // UUID，文档唯一标识
+  title: string;           // 从 content 的第一段落提取
+  content: Value;          // Plate.js 的编辑器状态
+  version: number;         // 单调递增，用于冲突检测
+  createdAt: number;       // Unix 时间戳(ms)
+  updatedAt: number;       // Unix 时间戳(ms)
+  deletedAt?: number | null; // 软删标记
+}
+
+/**
+ * 持久化存储的格式
+ * 与 DocumentRecord 相同，但 content 会被序列化为 JSON 字符串
+ */
+export type DocumentMeta = Omit<DocumentRecord, 'content'>;
+```
+
+**改进理由**：
+
+- 明确区分运行时类型和存储类型，避免序列化/反序列化混乱
+- JSDoc 注释让新人快速理解每个字段的业务含义
+
+#### 3. 代码审查与架构文档化（改进）
+
+**代码注释**：
+
+- 对象：`hooks/use-documents.tsx`, `components/editor/plate-editor.tsx`
+- 要求：
+  - 关键决策点（如 `key={activeDocument.id}`, `setTimeout(..., 0)`）必须有注释解释"为什么"
+  - 注释应链接到 [`storage-retrospective-V3.md`](docs/storage-retrospective-V3.md) 的对应章节
+  - 删除所有 V1/V2 的废弃代码和注释
+
+**架构决策记录 (ADR)** (新增)：
+
+- 创建 `docs/adr/001-v3-storage-architecture.md`
+- 内容模板：
+  ```markdown
+  # ADR-001: V3 存储架构设计
+
+  ## 背景
+  V1/V2 均因 React State 与编辑器内部状态冲突而失败...
+
+  ## 决策
+  1. React State 为唯一真源
+  2. 通过 key 强制重建组件
+  3. setTimeout 解决异步竞态
+
+  ## 后果
+  优点：简单、可预测
+  缺点：每次切换都重建组件（性能可接受）
+
+  ## 替代方案
+  V2 的内存 Map 方案（已证明不可行）
+  ```
+
+**改进理由**：
+
+- ADR 是软件工程的最佳实践，记录"为什么"而非"是什么"
+- 便于未来重新审视决策的合理性
+
+### 验收标准（改进）
+
+- [ ] 单元测试覆盖率 **≥80%**（而非机械的90%），关键路径100%覆盖
+- [ ] 集成测试至少覆盖 5 个核心场景
+- [ ] 手动测试清单全部通过
+- [ ] ADR 文档完成，经过 Code Review
+- [ ] **性能基线建立**（新增）：使用 Lighthouse 或 React DevTools Profiler 记录当前性能指标，作为后续优化的对比基准
+
+---
+
+## 阶段二：重新引入 IndexedDB，构建"智能"的冷备份层
+
+### 目标（修正）
+
+借鉴 V1 的"双层缓存"思想，但以一种**绝对不干扰主流程**的方式引入 IndexedDB。它不是被动的"只写"备份，而是一个有策略的**灾难恢复机制**。
+
+### 具体步骤
+
+#### 1. 实现单向写入逻辑（保留）
+
+- 对象：`hooks/use-documents.tsx`
+- 逻辑：在 `updateDocumentContent` 和 `createDocument` 中，localStorage 写入成功后，异步调用 `writeToIndexedDB(document)`
+- 关键：必须 try-catch，任何失败只打印日志，不影响主流程
+
+#### 2. 创建 IndexedDB 工具库（改进）
+
+**文件**：`lib/idb.ts`
+
+```typescript
+// lib/idb.ts
+
+/**
+ * IndexedDB 工具库
+ * 职责：作为 localStorage 的"影子备份"，在灾难恢复时使用
+ */
+
+// 只暴露写入方法
+export async function writeToIndexedDB(document: StoredDocument): Promise<void>
+
+// 灾难恢复方法（仅供恢复工具使用，不暴露给主应用）
+async function _dangerousRecoverFromIndexedDB(): Promise<StoredDocument[]>
+
+// 健康检查（新增）
+export async function checkIndexedDBHealth(): Promise<{
+  available: boolean;
+  documentCount: number;
+  lastSyncTime: number;
+}>
+```
+
+**改进点**：
+
+- 添加健康检查接口，用于监控 IndexedDB 的状态
+- 明确标记恢复方法为 `_dangerous` 前缀，避免误用
+
+#### 3. 实现灾难恢复 UI（新增，这是关键改进）
+
+**问题分析**：
+原细则说"清空 localStorage 后应用表现为首次启动"，这意味着**用户会永久丢失数据**。这不是一个可接受的用户体验。
+
+**改进方案**：
+
+- 创建 `components/ui/disaster-recovery-dialog.tsx`
+- 在 `DocumentsProvider` 初始化时，如果检测到：
+
+  1. localStorage 为空
+  2. IndexedDB 中有数据
+  3. 并且 IndexedDB 数据比当前更新
+
+  则**主动弹出对话框**，询问用户是否要从 IndexedDB 恢复数据
+
+```typescript
+// 伪代码
+useEffect(() => {
+  const localDocs = getCachedDocuments();
+  const idbHealth = await checkIndexedDBHealth();
+  
+  if (localDocs.length === 0 && idbHealth.documentCount > 0) {
+    setShowRecoveryDialog(true);
+  }
+}, []);
+```
+
+**对话框内容**：
+
+```
+检测到本地缓存已清空，但发现 {n} 篇文档的备份。
+是否要恢复这些文档？
+
+[查看详情] [恢复] [忽略]
+```
+
+**辩证分析**：
+
+- 优点：真正保护用户数据，体现"冷备份"的价值
+- 缺点：增加了一些复杂度
+- **权衡**：用户数据安全 > 代码简洁性，这是正确的权衡
+
+#### 4. 添加可观测性（新增）
+
+**开发者工具面板**（可选）：
+
+- 在设置面板中添加"存储状态"标签
+- 显示：
+  - localStorage 文档数量和总大小
+  - IndexedDB 同步状态和最后同步时间
+  - "手动触发备份" 按钮（用于测试）
+  - "从备份恢复" 按钮（灾难恢复）
+
+**改进理由**：
+
+- 让开发者和高级用户能够查看和控制存储状态
+- 便于调试和问题排查
+
+### 验收标准（改进）
+
+- [ ] IndexedDB 写入成功率 >99%（通过日志统计）
+- [ ] IndexedDB 写入失败对用户完全无感知
+- [ ] **灾难恢复测试**（新增）：手动清空 localStorage，刷新后能看到恢复对话框，点击恢复后数据完整
+- [ ] **多标签页测试**（新增）：两个标签页同时编辑，IndexedDB 的数据是否一致
+- [ ] 性能无退化：与阶段一的基线对比，页面加载和操作延迟增加 <50ms
+
+---
+
+## 阶段三：对接后端，实现"渐进式"的远程同步
+
+### 目标（修正）
+
+借鉴 V2 的防抖思想，但以一种**不阻塞前端、优雅降级**的方式实现后端同步。这不是一步到位，而是分三个子阶段逐步推进。
+
+### 子阶段 3.1：最小可行同步（MVP）
+
+**目标**：先实现"能同步"，暂不考虑冲突、离线等复杂场景
+
+#### 步骤
+
+1. **实现简单的防抖同步**（不使用 Web Worker）
+
+```typescript
+// hooks/use-documents.tsx
+
+let syncTimeoutId: NodeJS.Timeout | null = null;
+const SYNC_DEBOUNCE_MS = 2000;  // 2秒而非5秒，更快的反馈
+
+function scheduleSyncToBackend(documentId: string) {
+  if (syncTimeoutId) clearTimeout(syncTimeoutId);
+  
+  syncTimeoutId = setTimeout(async () => {
+    const doc = documents.find(d => d.id === documentId);
+    if (!doc) return;
+  
+    try {
+      await fetch('/api/documents/sync', {
+        method: 'POST',
+        body: JSON.stringify({ documents: [doc] })
+      });
+      console.log('[Sync] Success:', documentId);
+    } catch (error) {
+      console.warn('[Sync] Failed (will retry later):', error);
+      // 失败不报错，静默失败
+    }
+  }, SYNC_DEBOUNCE_MS);
+}
+```
+
+**辩证分析**：
+
+- **为什么不用 Web Worker？**
+  - Worker 增加了巨大的复杂度（消息传递、序列化、调试困难）
+  - 对于文档编辑这种低频操作（2秒防抖），Worker 的性能优势微乎其微
+  - V2 的失败教训：过早优化
+- **何时考虑 Worker？**
+  - 当同步频率极高（如实时协作，100ms 级别）
+  - 当同步逻辑极其复杂（如需要在后台进行大量计算）
+  - 当前场景不符合
+
+2. **定义清晰的 API 契约**
+
+```typescript
+// app/api/documents/sync/route.ts
+
+// 请求格式
+interface SyncRequest {
+  documents: Array<{
+    id: string;
+    title: string;
+    content: string;  // JSON string
+    version: number;
+    updatedAt: number;
+  }>;
+}
+
+// 响应格式
+interface SyncResponse {
+  success: boolean;
+  synced: string[];      // 成功同步的文档ID
+  conflicts: Array<{     // 冲突的文档（version 不匹配）
+    id: string;
+    serverVersion: number;
+    clientVersion: number;
+  }>;
+}
+```
+
+3. **实现模拟后端**
+
+```typescript
+// app/api/documents/sync/route.ts
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  console.log('[Mock Sync] Received:', body.documents.length, 'documents');
+  
+  // 模拟网络延迟
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
+  return Response.json({
+    success: true,
+    synced: body.documents.map(d => d.id),
+    conflicts: []
+  });
+}
+```
+
+**验收标准**：
+
+- [ ] 编辑文档 → 停止输入 2 秒 → 观察到网络请求
+- [ ] 快速切换多个文档 → 只在最后一次停止 2 秒后才发送请求
+- [ ] 网络请求失败（在 DevTools 中模拟）→ 用户体验无影响，控制台有日志
+- [ ] 性能无退化
+
+---
+
+### 子阶段 3.2：离线支持与重试机制（新增阶段）
+
+**目标**：处理网络不稳定的场景
+
+#### 改进方案
+
+1. **引入持久化的"待同步队列"**
+
+```typescript
+// lib/sync-queue.ts
+
+interface SyncTask {
+  documentId: string;
+  retryCount: number;
+  lastAttempt: number;
+}
+
+class SyncQueue {
+  private queue: SyncTask[] = [];
+  
+  // 持久化到 localStorage
+  private persist() {
+    localStorage.setItem('sync-queue', JSON.stringify(this.queue));
+  }
+  
+  // 添加任务
+  enqueue(documentId: string) {
+    // 如果已存在，更新时间
+    // 如果不存在，添加新任务
+  }
+  
+  // 执行队列（定期调用，如每 30 秒）
+  async process() {
+    // 取出队列头部任务
+    // 尝试同步
+    // 成功：从队列移除
+    // 失败：retryCount++，重新入队（指数退避）
+  }
+}
+```
+
+2. **监听网络状态**
+
+```typescript
+useEffect(() => {
+  const handleOnline = () => {
+    console.log('[Sync] Network restored, processing queue...');
+    syncQueue.process();
+  };
+  
+  window.addEventListener('online', handleOnline);
+  return () => window.removeEventListener('online', handleOnline);
+}, []);
+```
+
+**验收标准**：
+
+- [ ] 离线时编辑 → 任务进入队列
+- [ ] 恢复在线 → 自动同步
+- [ ] 多次失败 → 指数退避（1s, 2s, 4s, 8s...最多 5 分钟）
+- [ ] 重启浏览器 → 队列恢复，继续同步
+
+---
+
+### 子阶段 3.3：冲突检测与解决（新增阶段）
+
+**目标**：处理多端编辑的冲突
+
+**策略**：
+
+- 前端只负责**检测**冲突，不自动合并
+- 冲突发生时，弹出对话框让用户选择
+
+```typescript
+// 伪代码
+if (response.conflicts.length > 0) {
+  setConflictDialogs(response.conflicts.map(c => ({
+    documentId: c.id,
+    localVersion: c.clientVersion,
+    serverVersion: c.serverVersion
+  })));
+}
+```
+
+**对话框内容**：
+
+```
+文档 "XXX" 存在冲突
+
+本地版本：v5 (2分钟前)
+服务器版本：v7 (1分钟前，来自其他设备)
+
+[使用本地版本] [使用服务器版本] [查看差异]
+```
+
+**辩证分析**：
+
+- **为什么不自动合并？**
+  - 自动合并算法（如 CRDT）极其复杂，容易出错
+  - 文档内容的"语义冲突"（如两端写了不同的段落）无法自动解决
+  - 让用户选择是最安全的方案
+- **何时考虑自动合并？**
+  - 当实现了块级版本控制（每个段落独立版本）
+  - 当引入了 CRDT 或 OT 算法
+  - 当前阶段不合适
+
+**验收标准**：
+
+- [ ] 模拟冲突：本地 version=5，服务器返回 serverVersion=7
+- [ ] 弹出冲突对话框
+- [ ] 选择"使用服务器版本" → 本地内容被覆盖，编辑器刷新
+- [ ] 选择"使用本地版本" → 强制推送到服务器
+
+---
+
+## 附录：关键决策的辩证思考
+
+### 1. 为什么不使用 Redux/Zustand 等状态管理库？
+
+**论点**：使用 Context + Hooks 足够简单
+**反驳**：大型应用需要更强的状态管理
+**辩证**：
+
+- 当前应用的状态非常简单（documents 数组 + activeDocumentId）
+- Redux 的 action/reducer 模式会增加大量样板代码
+- 如果未来状态确实变复杂（如多用户协作），再引入也不迟
+- **结论**：暂时不引入，但在 ADR 中记录这个决策
+
+### 2. 为什么 localStorage 而非 IndexedDB 作为主存储？
+
+**论点**：localStorage 简单、同步、快速
+**反驳**：IndexedDB 容量更大、支持事务
+**辩证**：
+
+- localStorage 5MB 的限制对文档应用足够（5MB ≈ 5000 篇普通文档）
+- localStorage 的同步 API 避免了 V2 的异步竞态问题
+- IndexedDB 作为备份已经覆盖了数据安全需求
+- **结论**：localStorage 为主，IndexedDB 为辅，是当前最优解
+
+### 3. 为什么防抖 2 秒而非 5 秒？
+
+**论点**：2 秒让用户更快看到"已保存"反馈
+**反驳**：5 秒能更好地合并请求，减少服务器压力
+**辩证**：
+
+- 用户期望的"保存"反馈时间是秒级（参考 Google Docs: ~2秒）
+- 如果 5 秒，用户可能以为"没保存"而手动刷新
+- 服务器压力可以通过批量接口（一次传多个文档）解决
+- **结论**：2 秒是用户体验和性能的平衡点，可通过配置调整
+
+---
+
+## 总结：从失败中学到的智慧
+
+1. **简单胜于完美**：V2 的失败证明了复杂架构的脆弱性
+2. **渐进式迭代**：不要试图一次解决所有问题
+3. **用户体验优先**：任何优化都不应降低用户体验
+4. **可观测性是关键**：没有监控的系统无法调试
+5. **测试是信心的来源**：没有测试的代码不值得信任
+
+前辈们的失败是宝贵的财富。我们站在他们的肩膀上，用更审慎、更渐进的方式，构建一个真正可靠的存储系统。

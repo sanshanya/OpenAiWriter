@@ -2,10 +2,18 @@
 "use client";
 
 import * as React from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import type { DocumentRecord } from "@/types/storage";
 
-type DocMeta = { id: string; title: string; updatedAt: number; version: number };
+type RecoveryMeta = Pick<DocumentRecord, "id" | "title" | "updatedAt" | "version">;
 
 export function DisasterRecoveryDialog({
   open,
@@ -15,7 +23,7 @@ export function DisasterRecoveryDialog({
 }: {
   open: boolean;
   onClose: () => void;
-  docs: DocMeta[];
+  docs: RecoveryMeta[];
   onRecover: () => void;
 }) {
   return (

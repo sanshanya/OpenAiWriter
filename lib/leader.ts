@@ -24,9 +24,9 @@ type LeaderLease = { leaderId: string; leaseUntil: number };
 // --------- 内部可观测状态 ----------
 let _isLeader = false;
 let _stopped = false;
-let _leaderId = randomId();
-let _leaseMs = 5000;         // 回退方案租约时长
-let _renewIntervalMs = 1500; // 回退方案续约频率
+const _leaderId = randomId();
+const _leaseMs = 5000; // 回退方案租约时长
+const _renewIntervalMs = 1500; // 回退方案续约频率
 let _bc: BroadcastChannel | null = null;
 let _bcStatus: BroadcastChannel | null = null;
 let _renewTimer: number | null = null;
@@ -58,6 +58,18 @@ function now() {
   return Date.now();
 }
 
+type NavigatorLocks = Navigator & {
+  locks?: {
+    request(name: string, callback: () => Promise<void> | void): Promise<void>;
+  };
+};
+
+function getLocksApi(): NavigatorLocks["locks"] | null {
+  if (typeof navigator === "undefined") return null;
+  const nav = navigator as NavigatorLocks;
+  return nav.locks ?? null;
+}
+
 // --------- navigator.locks 路径 ----------
 async function runWithLock() {
   if (_stopped) return;
@@ -70,7 +82,9 @@ async function runWithLock() {
     // 说明：不使用 ifAvailable，而是直接请求锁。
     // 若已有持有者，回调会排队等待；持有者关闭页面后浏览器会自动释放并唤醒下一个。
     // 这样可以自然实现“卸任→继任”的队列语义，避免双主。
-    await (navigator as any).locks.request(LOCK_NAME, async (lock: any) => {
+    const locks = getLocksApi();
+    if (!locks) return;
+    await locks.request(LOCK_NAME, async () => {
       if (_stopped) return;
 
       // 成功获得锁，成为 Leader
@@ -230,7 +244,7 @@ function setupBroadcastChannels() {
     // 其他标签发来的“leader-changed”通知：加快本地感知
     if (msg.type === "leader-changed") {
       // 在 locks 路径下，无需动作；在回退路径下，可触发一次快速争抢
-      if (!(navigator as any).locks) {
+      if (!getLocksApi()) {
         // 快速检查是否需要抢占（例如对方卸任）
         const lease = readLease();
         if (!lease || lease.leaseUntil <= now()) {
@@ -260,7 +274,7 @@ function setupVisibilityHooks() {
   };
   const onShow = () => {
     // 可选：页面回来后快速确认主从地位
-    if (!(navigator as any).locks) {
+    if (!getLocksApi()) {
       const lease = readLease();
       if (!lease || lease.leaseUntil <= now()) {
         becomeLeaderFallback();
@@ -281,7 +295,7 @@ export function initializeLeaderElection(): () => boolean {
   setupVisibilityHooks();
 
   // 优先硬锁
-  if (typeof navigator !== "undefined" && (navigator as any).locks?.request) {
+  if (getLocksApi()) {
     // 启动即进入锁队列；只有持有期间才是 leader
     runWithLock();
   } else {
