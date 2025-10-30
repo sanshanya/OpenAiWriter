@@ -14,7 +14,6 @@ import {
   PencilLineIcon,
 } from "lucide-react";
 import {
-  type AnyPluginConfig,
   type NodeEntry,
   type Path,
   type TCommentText,
