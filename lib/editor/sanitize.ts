@@ -1,37 +1,40 @@
 const ALLOWED_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
 
-const RELATIVE_PREFIXES = ["/", "#"];
+const DOMAIN_RE =
+  /^(?:[\p{L}\p{N}-]+\.)+[\p{L}]{2,}(?::\d{1,5})?(?:\/[\S]*)?$/u;
 
-const SPECIAL_PREFIXES = ["mailto:", "tel:"];
+export function isLikelyUrl(raw: unknown): boolean {
+  if (typeof raw !== "string") return false;
+  const trimmed = raw.trim();
+  if (!trimmed) return false;
 
-export function sanitizeHref(input: unknown): string | null {
-  if (typeof input !== "string") return null;
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) return true;
+  if (/^[/#]/.test(trimmed)) return true;
+  if (/\s/.test(trimmed)) return false;
+  return DOMAIN_RE.test(trimmed);
+}
 
-  const candidate = input.trim();
-  if (!candidate) return null;
+export function sanitizeHref(raw: unknown): string | null {
+  if (!isLikelyUrl(raw)) return null;
+  const trimmed = (raw as string).trim();
 
-  if (RELATIVE_PREFIXES.some((prefix) => candidate.startsWith(prefix))) {
-    return candidate;
-  }
-
-  const lowerCandidate = candidate.toLowerCase();
-  for (const prefix of SPECIAL_PREFIXES) {
-    if (lowerCandidate.startsWith(prefix)) {
-      return candidate;
-    }
-  }
-
-  const hasScheme = /^[a-z][a-z0-9+\-.]*:/i.test(candidate);
-  const normalized = hasScheme ? candidate : `https://${candidate}`;
-
-  try {
-    const url = new URL(normalized);
-    if (!ALLOWED_PROTOCOLS.has(url.protocol)) {
+  if (/^(https?:\/\/|mailto:|tel:)/i.test(trimmed)) {
+    try {
+      const url = new URL(trimmed);
+      if (!ALLOWED_PROTOCOLS.has(url.protocol.toLowerCase())) return null;
+      return url.href;
+    } catch {
       return null;
     }
+  }
+
+  if (/^[/#]/.test(trimmed)) return trimmed;
+
+  try {
+    const url = new URL(`https://${trimmed}`);
+    if (!ALLOWED_PROTOCOLS.has(url.protocol.toLowerCase())) return null;
     return url.href;
   } catch {
     return null;
   }
 }
-

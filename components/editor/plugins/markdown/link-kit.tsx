@@ -6,14 +6,15 @@ import { LinkElement } from "@/components/ui/link-node";
 import { LinkFloatingToolbar } from "@/components/ui/link-toolbar";
 import { sanitizeHref } from "@/lib/editor/sanitize";
 
-const sanitizeToUndefined = (value: string) => sanitizeHref(value) ?? undefined;
+const toHref = (value: string) => sanitizeHref(value) ?? undefined;
 
 export const LinkKit = [
   LinkPlugin.configure({
     options: {
-      transformInput: sanitizeToUndefined,
-      isUrl: (text) => sanitizeHref(text) !== null,
-      getUrlHref: sanitizeToUndefined,
+      transformInput: toHref,
+      getUrlHref: toHref,
+      allowedSchemes: ["http", "https", "mailto", "tel"],
+      dangerouslySkipSanitization: false,
     },
     render: {
       node: LinkElement,

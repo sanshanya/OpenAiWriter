@@ -1,10 +1,7 @@
 import { KEYS } from "platejs";
 import type { TElement, TText } from "platejs";
 
-import {
-  enabledPluginKeys,
-  type EnabledPluginKey,
-} from "@/lib/editor/enabled-plugins";
+import { type EnabledPluginKey } from "@/lib/editor/enabled-plugins";
 
 export { enabledPluginKeys } from "@/lib/editor/enabled-plugins";
 export type { EnabledPluginKey } from "@/lib/editor/enabled-plugins";
@@ -447,15 +444,15 @@ const INLINE_ELEMENT_KEYS = new Set<InlineElementKey>([
 
 type AssertTrue<T extends true> = T;
 
-type _NoOverlap = AssertTrue<
+export type BlockInlineNoOverlapCheck = AssertTrue<
   Extract<BlockElementKey, InlineElementKey> extends never ? true : false
 >;
-type _AllClassified = AssertTrue<
+export type AllElementsClassifiedCheck = AssertTrue<
   Exclude<ElementKey, BlockElementKey | InlineElementKey> extends never
     ? true
     : false
 >;
-type _OnlyKnownKeys = AssertTrue<
+export type NoUnknownKeysCheck = AssertTrue<
   Exclude<BlockElementKey | InlineElementKey, ElementKey> extends never
     ? true
     : false
