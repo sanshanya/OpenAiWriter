@@ -1,7 +1,7 @@
 // lib/storage/adapter/normalize.ts
 "use client";
 
-import { type Value } from "platejs";
+import type { MyValue } from "@/types/plate-elements";
 import {
   INITIAL_DOCUMENT_CONTENT,
   INITIAL_DOCUMENT_TITLE,
@@ -11,7 +11,7 @@ import { cloneValue, deriveTitle, type DocumentRecord } from "@/types/storage";
 export function normalizeDoc(doc: DocumentRecord): DocumentRecord {
   const now = Date.now();
   const content = Array.isArray(doc.content)
-    ? (doc.content as Value)
+    ? (doc.content as MyValue)
     : cloneValue(INITIAL_DOCUMENT_CONTENT);
   const title =
     typeof doc.title === "string" && doc.title.trim()

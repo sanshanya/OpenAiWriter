@@ -12,6 +12,9 @@
 - **设置层**  
   `components/editor/settings/*` 将可选插件封装为上下文与控制面板，使 `PlateEditor` 可在运行时构建插件列表。当前仅展示核心插件说明，待引入扩展能力后再开放开关。
 
+- **类型真源与触发器**  
+  所有可编辑节点与标记的键值、接口以及插件→元素/标记映射统一收口在 `types/plate-elements.ts`。新增/裁剪插件或调整节点结构时必须首先更新该文件，并同步核对：渲染组件、快捷键、工具栏与 Markdown 反序列化是否需要变更（若有变动需同时补充单测/回归清单）。
+
 - **本地持久化**
   通过 [`hooks/use-documents.tsx`](../hooks/use-documents.tsx:1) 提供的 `DocumentsProvider` 托管多文档草稿，采用内存 Map 为唯一真源的架构：
   - **内存 Map**：所有文档的完整数据（唯一真源）

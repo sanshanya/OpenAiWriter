@@ -1,13 +1,13 @@
 "use client";
 
 import * as React from "react";
-import { type Value } from "platejs";
 import { Plate } from "platejs/react";
 
 import { useEditorKit } from "@/components/editor/editor-kit";
 import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
 import { Editor, EditorContainer } from "@/components/ui/editor";
 import { useDocuments } from "@/hooks/use-documents";
+import type { MyValue } from "@/types/plate-elements";
 
 /**
  * 单文档编辑实例
@@ -21,15 +21,15 @@ const EditorInstance = React.memo(
     onContentChange,
   }: {
     docId: string;
-    content: Value;
-    onContentChange: (docId: string, value: Value) => void;
+    content: MyValue;
+    onContentChange: (docId: string, value: MyValue) => void;
   }) => {
     const initialValue = React.useMemo(() => content, [content]);
     const { editor } = useEditorKit(initialValue);
     useEditorHotkeys(editor);
 
     const handleChange = React.useCallback(
-      ({ value }: { value: Value }) => {
+      ({ value }: { value: MyValue }) => {
         onContentChange(docId, value); // 关键：携带 docId
       },
       [docId, onContentChange]

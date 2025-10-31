@@ -26,7 +26,7 @@ import {
   PathApi,
 } from "platejs";
 
-const ACTION_THREE_COLUMNS = "action_three_columns";
+export const ACTION_THREE_COLUMNS = "action_three_columns";
 
 const insertList = (editor: PlateEditor, type: string) => {
   editor.tf.insertNodes(

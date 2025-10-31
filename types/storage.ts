@@ -1,14 +1,15 @@
 // types/storage.ts
-import { NodeApi, type Value } from "platejs";
+import { NodeApi } from "platejs";
 import {
   INITIAL_DOCUMENT_CONTENT,
   INITIAL_DOCUMENT_TITLE,
 } from "@/components/editor/initial-value";
+import type { MyValue } from "@/types/plate-elements";
 
 export type DocumentRecord = {
   id: string;
   title: string;
-  content: Value;
+  content: MyValue;
   createdAt: number;
   updatedAt: number;
   version: number;
@@ -22,7 +23,7 @@ export function cloneValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
-export function deriveTitle(value: Value, fallback: string): string {
+export function deriveTitle(value: MyValue, fallback: string): string {
   const nodes = Array.isArray(value)
     ? (value as Array<Parameters<typeof NodeApi.string>[0]>)
     : [];
@@ -46,7 +47,7 @@ export function makeDefaultDoc(): DocumentRecord {
     `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   return {
     id: rid,
-    title: deriveTitle(content as Value, INITIAL_DOCUMENT_TITLE),
+    title: deriveTitle(content as MyValue, INITIAL_DOCUMENT_TITLE),
     content,
     createdAt: now,
     updatedAt: now,

@@ -20,7 +20,7 @@ import {
   TrashIcon,
   XIcon,
 } from "lucide-react";
-import { type Value, KEYS, nanoid, NodeApi } from "platejs";
+import { KEYS, nanoid, NodeApi } from "platejs";
 import {
   Plate,
   useEditorPlugin,
@@ -45,11 +45,13 @@ import {
   discussionPlugin,
 } from "@/components/editor/plugins/system/discussion-kit";
 
+import type { MyValue } from "@/types/plate-elements";
+
 import { Editor, EditorContainer } from "./editor";
 
 export interface TComment {
   id: string;
-  contentRich: Value;
+  contentRich: MyValue;
   createdAt: Date;
   discussionId: string;
   isEdited: boolean;
@@ -102,7 +104,7 @@ export function Comment(props: {
 
   const updateComment = async (input: {
     id: string;
-    contentRich: Value;
+    contentRich: MyValue;
     discussionId: string;
     isEdited: boolean;
   }) => {
@@ -423,7 +425,7 @@ export function CommentCreateForm({
   const discussionId = discussionIdProp ?? commentId;
 
   const userInfo = usePluginOption(discussionPlugin, "currentUser");
-  const [commentValue, setCommentValue] = React.useState<Value | undefined>();
+  const [commentValue, setCommentValue] = React.useState<MyValue | undefined>();
   const commentContent = React.useMemo(
     () =>
       commentValue

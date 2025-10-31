@@ -2,12 +2,12 @@
 "use client";
 
 import * as React from "react";
-import { type Value } from "platejs";
 import { DisasterRecoveryDialog } from "@/components/storage/disaster-recovery-dialog";
 import { type DocumentMeta, type DocumentRecord } from "@/types/storage";
 import * as Storage from "@/lib/storage";
+import type { MyValue } from "@/types/plate-elements";
 
-const createPlaceholderContent = (): Value => [] as Value;
+const createPlaceholderContent = (): MyValue => [] as MyValue;
 
 const toMeta = (doc: DocumentRecord): DocumentMeta => ({
   id: doc.id,
@@ -27,7 +27,7 @@ type DocumentsContextValue = {
   createDocument: () => void;
   selectDocument: (id: string) => void;
   // 关键：onChange 必须带 docId，根除切换串台
-  updateDocumentContent: (docId: string, value: Value) => void;
+  updateDocumentContent: (docId: string, value: MyValue) => void;
   deleteDocument: (id: string) => void;
   restoreDocument: (id: string) => void;
   purgeDocument: (id: string) => void;

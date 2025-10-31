@@ -37,11 +37,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  ACTION_THREE_COLUMNS,
   insertBlock,
   insertInlineElement,
 } from "@/components/editor/transforms";
 
 import { ToolbarButton, ToolbarMenuGroup } from "./toolbar";
+import type { ElementKey } from "@/types/plate-elements";
 
 type Group = {
   group: string;
@@ -50,8 +52,11 @@ type Group = {
 
 interface Item {
   icon: React.ReactNode;
-  value: string;
-  onSelect: (editor: PlateEditor, value: string) => void;
+  value: ElementKey | typeof ACTION_THREE_COLUMNS;
+  onSelect: (
+    editor: PlateEditor,
+    value: ElementKey | typeof ACTION_THREE_COLUMNS,
+  ) => void;
   focusEditor?: boolean;
   label?: string;
 }
@@ -68,17 +73,17 @@ const groups: Group[] = [
       {
         icon: <Heading1Icon />,
         label: "Heading 1",
-        value: "h1",
+        value: KEYS.h1,
       },
       {
         icon: <Heading2Icon />,
         label: "Heading 2",
-        value: "h2",
+        value: KEYS.h2,
       },
       {
         icon: <Heading3Icon />,
         label: "Heading 3",
-        value: "h3",
+        value: KEYS.h3,
       },
       {
         icon: <TableIcon />,
@@ -168,7 +173,7 @@ const groups: Group[] = [
       {
         icon: <Columns3Icon />,
         label: "3 columns",
-        value: "action_three_columns",
+        value: ACTION_THREE_COLUMNS,
       },
       {
         focusEditor: false,

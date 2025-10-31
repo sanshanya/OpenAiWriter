@@ -1,7 +1,7 @@
 // hooks/documents-model.ts
 "use client";
 
-import { nanoid, type Value } from "platejs";
+import { nanoid } from "platejs";
 import {
   INITIAL_DOCUMENT_CONTENT,
   INITIAL_DOCUMENT_TITLE,
@@ -11,6 +11,7 @@ import {
   deriveTitle,
   type DocumentRecord,
 } from "@/types/storage";
+import type { MyValue } from "@/types/plate-elements";
 
 export type ModelState = {
   docs: DocumentRecord[];
@@ -21,7 +22,7 @@ export type Action =
   | { type: "INIT"; docs: DocumentRecord[]; activeId?: string | null }
   | { type: "SELECT"; id: string }
   | { type: "CREATE"; now: number }
-  | { type: "UPDATE_CONTENT"; id: string; value: Value; now: number }
+  | { type: "UPDATE_CONTENT"; id: string; value: MyValue; now: number }
   | { type: "DELETE_SOFT"; id: string; now: number }
   | { type: "RESTORE"; id: string; now: number }
   | { type: "PURGE"; id: string }
@@ -30,7 +31,7 @@ export type Action =
       id: string;
       server: {
         title?: string;
-        content: Value;
+        content: MyValue;
         version: number;
         updatedAt: number;
         deletedAt?: number | null;

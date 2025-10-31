@@ -5,6 +5,7 @@ import type { TComment } from "@/components/ui/comment";
 import { createPlatePlugin } from "platejs/react";
 
 import { BlockDiscussion } from "@/components/ui/block-discussion";
+import { ELEMENTS } from "@/types/plate-elements";
 
 export interface TDiscussion {
   id: string;
@@ -28,7 +29,7 @@ const discussionsData: TDiscussion[] = [
                 text: "Comments are a great way to provide feedback and discuss changes.",
               },
             ],
-            type: "p",
+            type: ELEMENTS.paragraph,
           },
         ],
         createdAt: new Date(Date.now() - 600_000),
@@ -45,7 +46,7 @@ const discussionsData: TDiscussion[] = [
                 text: "Agreed! The link to the docs makes it easy to learn more.",
               },
             ],
-            type: "p",
+            type: ELEMENTS.paragraph,
           },
         ],
         createdAt: new Date(Date.now() - 500_000),
@@ -71,7 +72,7 @@ const discussionsData: TDiscussion[] = [
                 text: "Nice demonstration of overlapping annotations with both comments and suggestions!",
               },
             ],
-            type: "p",
+            type: ELEMENTS.paragraph,
           },
         ],
         createdAt: new Date(Date.now() - 300_000),
@@ -88,7 +89,7 @@ const discussionsData: TDiscussion[] = [
                 text: "This helps users understand how powerful the editor can be.",
               },
             ],
-            type: "p",
+            type: ELEMENTS.paragraph,
           },
         ],
         createdAt: new Date(Date.now() - 200_000),

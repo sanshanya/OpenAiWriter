@@ -8,14 +8,17 @@ import {
   optionalPluginGroups,
   type OptionalPluginGroup,
 } from "@/components/editor/plugins";
+import type { EnabledPluginKey } from "@/types/plate-elements";
 
 type EditorSettingsContextValue = {
-  enabledOptionalPluginIds: string[];
-  toggleOptionalPlugin: (id: string) => void;
-  isOptionalPluginEnabled: (id: string) => boolean;
+  enabledOptionalPluginIds: EnabledPluginKey[];
+  toggleOptionalPlugin: (id: EnabledPluginKey) => void;
+  isOptionalPluginEnabled: (id: EnabledPluginKey) => boolean;
   restoreDefaultOptionalPlugins: () => void;
   optionalPluginGroups: OptionalPluginGroup[];
-  buildPlugins: (ids?: string[]) => ReturnType<typeof buildEditorPlugins>;
+  buildPlugins: (
+    ids?: EnabledPluginKey[],
+  ) => ReturnType<typeof buildEditorPlugins>;
 };
 
 const EditorSettingsContext =
@@ -27,9 +30,9 @@ export function EditorSettingsProvider({
   children: React.ReactNode;
 }) {
   const [enabledOptionalPluginIds, setEnabledOptionalPluginIds] =
-    React.useState<string[]>(defaultEnabledOptionalPluginIds);
+    React.useState<EnabledPluginKey[]>(defaultEnabledOptionalPluginIds);
 
-  const toggleOptionalPlugin = React.useCallback((id: string) => {
+  const toggleOptionalPlugin = React.useCallback((id: EnabledPluginKey) => {
     setEnabledOptionalPluginIds((prev) => {
       if (prev.includes(id)) {
         return prev.filter((item) => item !== id);
@@ -43,12 +46,13 @@ export function EditorSettingsProvider({
   }, []);
 
   const isOptionalPluginEnabled = React.useCallback(
-    (id: string) => enabledOptionalPluginIds.includes(id),
+    (id: EnabledPluginKey) => enabledOptionalPluginIds.includes(id),
     [enabledOptionalPluginIds],
   );
 
   const buildPluginsWithState = React.useCallback(
-    (ids?: string[]) => buildEditorPlugins(ids ?? enabledOptionalPluginIds),
+    (ids?: EnabledPluginKey[]) =>
+      buildEditorPlugins(ids ?? enabledOptionalPluginIds),
     [enabledOptionalPluginIds],
   );
 

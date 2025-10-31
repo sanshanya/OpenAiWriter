@@ -32,11 +32,23 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getBlockType, setBlockType } from "@/components/editor/transforms";
+import {
+  ACTION_THREE_COLUMNS,
+  getBlockType,
+  setBlockType,
+} from "@/components/editor/transforms";
+import type { ElementKey } from "@/types/plate-elements";
 
 import { ToolbarButton, ToolbarMenuGroup } from "./toolbar";
 
-export const turnIntoItems = [
+type TurnIntoItem = {
+  icon: React.ReactNode;
+  keywords?: string[];
+  label: string;
+  value: ElementKey | typeof ACTION_THREE_COLUMNS;
+};
+
+export const turnIntoItems: TurnIntoItem[] = [
   {
     icon: <PilcrowIcon />,
     keywords: ["paragraph"],
@@ -47,37 +59,37 @@ export const turnIntoItems = [
     icon: <Heading1Icon />,
     keywords: ["title", "h1"],
     label: "Heading 1",
-    value: "h1",
+    value: KEYS.h1,
   },
   {
     icon: <Heading2Icon />,
     keywords: ["subtitle", "h2"],
     label: "Heading 2",
-    value: "h2",
+    value: KEYS.h2,
   },
   {
     icon: <Heading3Icon />,
     keywords: ["subtitle", "h3"],
     label: "Heading 3",
-    value: "h3",
+    value: KEYS.h3,
   },
   {
     icon: <Heading4Icon />,
     keywords: ["subtitle", "h4"],
     label: "Heading 4",
-    value: "h4",
+    value: KEYS.h4,
   },
   {
     icon: <Heading5Icon />,
     keywords: ["subtitle", "h5"],
     label: "Heading 5",
-    value: "h5",
+    value: KEYS.h5,
   },
   {
     icon: <Heading6Icon />,
     keywords: ["subtitle", "h6"],
     label: "Heading 6",
-    value: "h6",
+    value: KEYS.h6,
   },
   {
     icon: <ListIcon />,
@@ -118,7 +130,7 @@ export const turnIntoItems = [
   {
     icon: <Columns3Icon />,
     label: "3 columns",
-    value: "action_three_columns",
+    value: ACTION_THREE_COLUMNS,
   },
 ];
 

@@ -1,26 +1,34 @@
 "use client";
 
-import { normalizeNodeId, type Value } from "platejs";
+import { normalizeNodeId } from "platejs";
 
-const baseInitialValue: Value = [
-  { type: "h1", children: [{ text: "Basic Editor" }] },
-  { type: "h2", children: [{ text: "Heading 2" }] },
-  { type: "h3", children: [{ text: "Heading 3" }] },
+import {
+  ELEMENTS,
+  MARKS,
+  type MyValue,
+} from "@/types/plate-elements";
+
+const baseInitialValue: MyValue = [
+  { type: ELEMENTS.h1, children: [{ text: "Basic Editor" }] },
+  { type: ELEMENTS.h2, children: [{ text: "Heading 2" }] },
+  { type: ELEMENTS.h3, children: [{ text: "Heading 3" }] },
   {
-    type: "blockquote",
-    children: [{ text: "This is a blockquote element", italic: true }],
+    type: ELEMENTS.blockquote,
+    children: [
+      { text: "This is a blockquote element", [MARKS.italic]: true },
+    ],
   },
   {
-    type: "p",
+    type: ELEMENTS.paragraph,
     children: [
       { text: "Basic marks: " },
-      { text: "bold", bold: true },
+      { text: "bold", [MARKS.bold]: true },
       { text: ", " },
-      { text: "italic", italic: true },
+      { text: "italic", [MARKS.italic]: true },
       { text: ", " },
-      { text: "underline", underline: true },
+      { text: "underline", [MARKS.underline]: true },
       { text: ", " },
-      { text: "strikethrough", strikethrough: true },
+      { text: "strikethrough", [MARKS.strikethrough]: true },
       { text: "." },
     ],
   },
@@ -28,5 +36,5 @@ const baseInitialValue: Value = [
 
 export const INITIAL_DOCUMENT_TITLE = "未命名文档";
 
-export const INITIAL_DOCUMENT_CONTENT: Value =
-  normalizeNodeId(baseInitialValue);
+export const INITIAL_DOCUMENT_CONTENT: MyValue =
+  normalizeNodeId(baseInitialValue) as MyValue;

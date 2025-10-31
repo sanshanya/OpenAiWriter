@@ -13,6 +13,7 @@ import { useEditorRef, usePluginOption } from "platejs/react";
 
 import { aiChatPlugin } from "./ai/ai-kit";
 import { discussionPlugin } from "./system/discussion-kit";
+import { ELEMENTS } from "@/types/plate-elements";
 
 export type ToolName = "comment" | "edit" | "generate";
 
@@ -91,7 +92,12 @@ export const useChat = () => {
 
         const newComment = {
           id: nanoid(),
-          contentRich: [{ children: [{ text: aiComment.comment }], type: "p" }],
+          contentRich: [
+            {
+              children: [{ text: aiComment.comment }],
+              type: ELEMENTS.paragraph,
+            },
+          ],
           createdAt: new Date(),
           discussionId,
           isEdited: false,

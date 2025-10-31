@@ -29,6 +29,7 @@ import { type TComboboxInputElement, KEYS } from "platejs";
 import { PlateElement } from "platejs/react";
 
 import {
+  ACTION_THREE_COLUMNS,
   insertBlock,
   insertInlineElement,
 } from "@/components/editor/transforms";
@@ -164,7 +165,7 @@ const groups: Group[] = [
       {
         icon: <Columns3Icon />,
         label: "3 columns",
-        value: "action_three_columns",
+        value: ACTION_THREE_COLUMNS,
       },
       {
         focusEditor: false,
