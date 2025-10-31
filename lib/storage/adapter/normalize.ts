@@ -10,8 +10,8 @@ import { cloneValue, deriveTitle, type DocumentRecord } from "@/types/storage";
 
 export function normalizeDoc(doc: DocumentRecord): DocumentRecord {
   const now = Date.now();
-  const content = Array.isArray(doc.content)
-    ? (doc.content as MyValue)
+  const content: MyValue = Array.isArray(doc.content)
+    ? doc.content
     : cloneValue(INITIAL_DOCUMENT_CONTENT);
   const title =
     typeof doc.title === "string" && doc.title.trim()

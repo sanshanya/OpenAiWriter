@@ -7,7 +7,7 @@ import { type DocumentMeta, type DocumentRecord } from "@/types/storage";
 import * as Storage from "@/lib/storage";
 import type { MyValue } from "@/types/plate-elements";
 
-const createPlaceholderContent = (): MyValue => [] as MyValue;
+const createPlaceholderContent = (): MyValue => [];
 
 const toMeta = (doc: DocumentRecord): DocumentMeta => ({
   id: doc.id,

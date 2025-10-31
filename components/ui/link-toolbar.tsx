@@ -30,6 +30,7 @@ import {
 
 import { buttonVariants } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { sanitizeHref } from "@/lib/editor/sanitize";
 
 const popoverVariants = cva(
   "bg-popover text-popover-foreground z-50 w-auto rounded-md border p-1 shadow-md outline-hidden",
@@ -187,10 +188,14 @@ function LinkOpenButton() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [editor, selection],
   );
+  const href = sanitizeHref(attributes?.href);
+  if (!href) return null;
 
   return (
     <a
       {...attributes}
+      href={href}
+      rel="noopener noreferrer"
       className={buttonVariants({
         size: "sm",
         variant: "ghost",

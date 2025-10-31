@@ -1,6 +1,14 @@
 import { KEYS } from "platejs";
 import type { TElement, TText } from "platejs";
 
+import {
+  enabledPluginKeys,
+  type EnabledPluginKey,
+} from "@/lib/editor/enabled-plugins";
+
+export { enabledPluginKeys } from "@/lib/editor/enabled-plugins";
+export type { EnabledPluginKey } from "@/lib/editor/enabled-plugins";
+
 /** ===== 常量真源 ===== */
 
 export const ELEMENTS = {
@@ -55,36 +63,36 @@ export const MARKS = {
   ai: KEYS.ai,
 } as const;
 
+const pluginKey = <T extends EnabledPluginKey>(key: T) => key;
+
 export const PLUGINS = {
-  basicBlocks: "core-blocks",
-  basicMarks: "core-marks",
-  markdownParser: "markdown-parser",
-  markdownAutoformat: "markdown-autoformat",
-  markdownList: "markdown-list",
-  markdownCode: "markdown-code",
-  markdownLink: "markdown-link",
-  markdownTable: "markdown-table",
-  markdownMedia: "markdown-media",
-  markdownMath: "markdown-math",
-  markdownToc: "markdown-toc",
-  slash: "slash",
-  aiCore: "ai-core",
-  aiCopilot: "ai-copilot",
-  blockSelection: "block-selection",
-  comment: "comment",
-  discussion: "discussion",
-  suggestion: "suggestion",
-  dnd: "dnd",
-  fixedToolbar: "fixed-toolbar",
-  floatingToolbar: "floating-toolbar",
-  blockMenu: "block-menu",
-  blockPlaceholder: "block-placeholder",
+  basicBlocks: pluginKey("core-blocks"),
+  basicMarks: pluginKey("core-marks"),
+  markdownParser: pluginKey("markdown-parser"),
+  markdownAutoformat: pluginKey("markdown-autoformat"),
+  markdownList: pluginKey("markdown-list"),
+  markdownCode: pluginKey("markdown-code"),
+  markdownLink: pluginKey("markdown-link"),
+  markdownTable: pluginKey("markdown-table"),
+  markdownMedia: pluginKey("markdown-media"),
+  markdownMath: pluginKey("markdown-math"),
+  markdownToc: pluginKey("markdown-toc"),
+  slash: pluginKey("slash"),
+  aiCore: pluginKey("ai-core"),
+  aiCopilot: pluginKey("ai-copilot"),
+  blockSelection: pluginKey("block-selection"),
+  comment: pluginKey("comment"),
+  discussion: pluginKey("discussion"),
+  suggestion: pluginKey("suggestion"),
+  dnd: pluginKey("dnd"),
+  fixedToolbar: pluginKey("fixed-toolbar"),
+  floatingToolbar: pluginKey("floating-toolbar"),
+  blockMenu: pluginKey("block-menu"),
+  blockPlaceholder: pluginKey("block-placeholder"),
 } as const;
 
 export type ElementKey = (typeof ELEMENTS)[keyof typeof ELEMENTS];
 export type MarkKey = (typeof MARKS)[keyof typeof MARKS];
-export type EnabledPluginKey = (typeof PLUGINS)[keyof typeof PLUGINS];
-
 export const ALL_ELEMENT_KEYS = Object.values(ELEMENTS) as readonly ElementKey[];
 export const ALL_MARK_KEYS = Object.values(MARKS) as readonly MarkKey[];
 
@@ -392,12 +400,13 @@ export type BlockElementKey =
   | typeof ELEMENTS.audio
   | typeof ELEMENTS.file
   | typeof ELEMENTS.equation
-  | typeof ELEMENTS.inlineEquation
-  | typeof ELEMENTS.date
   | typeof ELEMENTS.excalidraw
   | typeof ELEMENTS.aiChat;
 
-export type InlineElementKey = typeof ELEMENTS.link;
+export type InlineElementKey =
+  | typeof ELEMENTS.link
+  | typeof ELEMENTS.inlineEquation
+  | typeof ELEMENTS.date;
 
 const BLOCK_ELEMENT_KEYS = new Set<BlockElementKey>([
   ELEMENTS.paragraph,
@@ -426,13 +435,31 @@ const BLOCK_ELEMENT_KEYS = new Set<BlockElementKey>([
   ELEMENTS.audio,
   ELEMENTS.file,
   ELEMENTS.equation,
-  ELEMENTS.inlineEquation,
-  ELEMENTS.date,
   ELEMENTS.excalidraw,
   ELEMENTS.aiChat,
 ]);
 
-const INLINE_ELEMENT_KEYS = new Set<InlineElementKey>([ELEMENTS.link]);
+const INLINE_ELEMENT_KEYS = new Set<InlineElementKey>([
+  ELEMENTS.link,
+  ELEMENTS.inlineEquation,
+  ELEMENTS.date,
+]);
+
+type AssertTrue<T extends true> = T;
+
+type _NoOverlap = AssertTrue<
+  Extract<BlockElementKey, InlineElementKey> extends never ? true : false
+>;
+type _AllClassified = AssertTrue<
+  Exclude<ElementKey, BlockElementKey | InlineElementKey> extends never
+    ? true
+    : false
+>;
+type _OnlyKnownKeys = AssertTrue<
+  Exclude<BlockElementKey | InlineElementKey, ElementKey> extends never
+    ? true
+    : false
+>;
 
 export const isBlock = (key: ElementKey): key is BlockElementKey =>
   BLOCK_ELEMENT_KEYS.has(key);

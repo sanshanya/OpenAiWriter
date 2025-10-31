@@ -36,7 +36,7 @@ const EditorInstance = React.memo(
     );
 
     return (
-      <Plate editor={editor} onChange={handleChange}>
+      <Plate<MyValue> editor={editor} onChange={handleChange}>
         <EditorContainer>
           <Editor
             variant="fullWidth"

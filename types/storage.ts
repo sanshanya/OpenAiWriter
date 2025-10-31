@@ -47,7 +47,7 @@ export function makeDefaultDoc(): DocumentRecord {
     `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   return {
     id: rid,
-    title: deriveTitle(content as MyValue, INITIAL_DOCUMENT_TITLE),
+    title: deriveTitle(content, INITIAL_DOCUMENT_TITLE),
     content,
     createdAt: now,
     updatedAt: now,

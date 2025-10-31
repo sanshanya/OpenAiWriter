@@ -8,6 +8,9 @@ import {
   type MyValue,
 } from "@/types/plate-elements";
 
+const normalizeValue = <T extends unknown[]>(value: T) =>
+  normalizeNodeId(value) as T;
+
 const baseInitialValue: MyValue = [
   { type: ELEMENTS.h1, children: [{ text: "Basic Editor" }] },
   { type: ELEMENTS.h2, children: [{ text: "Heading 2" }] },
@@ -37,4 +40,4 @@ const baseInitialValue: MyValue = [
 export const INITIAL_DOCUMENT_TITLE = "未命名文档";
 
 export const INITIAL_DOCUMENT_CONTENT: MyValue =
-  normalizeNodeId(baseInitialValue) as MyValue;
+  normalizeValue(baseInitialValue);

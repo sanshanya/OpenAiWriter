@@ -6,7 +6,7 @@ import type { AnyPluginConfig } from "platejs";
 import { usePlateEditor } from "platejs/react";
 
 import { useEditorSettings } from "@/components/editor/settings/editor-settings-provider";
-import type { MyValue } from "@/types/plate-elements";
+import type { MyElement, MyText, MyValue } from "@/types/plate-elements";
 
 export function useEditorKit(value: MyValue) {
   const { buildPlugins } = useEditorSettings();
@@ -16,7 +16,7 @@ export function useEditorKit(value: MyValue) {
     [buildPlugins],
   );
 
-  const editor = usePlateEditor(
+  const editor = usePlateEditor<MyValue, MyElement, MyText>(
     {
       plugins,
       value,
