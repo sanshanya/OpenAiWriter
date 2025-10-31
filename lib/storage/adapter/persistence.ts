@@ -13,6 +13,7 @@ type PersistTask = {
 };
 
 const pending = new Map<string, PersistTask>();
+const pendingVersions = new Map<string, number>();
 let idleScheduled = false;
 const BULK_WRITE_THRESHOLD = STORAGE_CONFIG.IDB_BULK_WRITE_THRESHOLD;
 
@@ -24,21 +25,30 @@ function scheduleFlushOnIdle() {
     idleScheduled = false;
     const tasks = Array.from(pending.values());
     pending.clear();
+    const versionSnapshot = new Map(pendingVersions);
+    pendingVersions.clear();
     if (tasks.length === 0) {
       return;
     }
 
     (async () => {
       const t0 = performance.now();
-      const payload = tasks.map(({ meta, content }) => ({
-        id: meta.id,
-        title: meta.title,
-        version: meta.version,
-        updatedAt: meta.updatedAt,
-        createdAt: meta.createdAt,
-        deletedAt: meta.deletedAt ?? undefined,
-        content,
-      }));
+      const payload = tasks
+        .map(({ meta, content }) => ({
+          id: meta.id,
+          title: meta.title,
+          version: meta.version,
+          updatedAt: meta.updatedAt,
+          createdAt: meta.createdAt,
+          contentVersion: versionSnapshot.get(meta.id) ?? meta.contentVersion,
+          deletedAt: meta.deletedAt ?? undefined,
+          content,
+        }))
+        .sort(
+          (a, b) =>
+            (versionSnapshot.get(a.id) ?? a.contentVersion) -
+            (versionSnapshot.get(b.id) ?? b.contentVersion),
+        );
 
       if (payload.length >= BULK_WRITE_THRESHOLD) {
         StorageLogger.batch("idbFlush", payload.length, "bulk");
@@ -75,6 +85,7 @@ function scheduleFlushOnIdle() {
 
 export function persistDocChange(meta: DocumentMeta, content: Value) {
   pending.set(meta.id, { meta, content });
+  pendingVersions.set(meta.id, meta.contentVersion);
   scheduleFlushOnIdle();
 }
 
@@ -82,21 +93,30 @@ export async function flushPendingWritesNow(): Promise<void> {
   // 仅退出流程调用
   const tasks = Array.from(pending.values());
   pending.clear();
+  const versionSnapshot = new Map(pendingVersions);
+  pendingVersions.clear();
   idleScheduled = false;
 
   if (tasks.length === 0) {
     return;
   }
 
-  const payload = tasks.map(({ meta, content }) => ({
-    id: meta.id,
-    title: meta.title,
-    version: meta.version,
-    updatedAt: meta.updatedAt,
-    createdAt: meta.createdAt,
-    deletedAt: meta.deletedAt ?? undefined,
-    content,
-  }));
+  const payload = tasks
+    .map(({ meta, content }) => ({
+      id: meta.id,
+      title: meta.title,
+      version: meta.version,
+      updatedAt: meta.updatedAt,
+      createdAt: meta.createdAt,
+      contentVersion: versionSnapshot.get(meta.id) ?? meta.contentVersion,
+      deletedAt: meta.deletedAt ?? undefined,
+      content,
+    }))
+    .sort(
+      (a, b) =>
+        (versionSnapshot.get(a.id) ?? a.contentVersion) -
+        (versionSnapshot.get(b.id) ?? b.contentVersion),
+    );
 
   StorageLogger.batch("idbFlushNow", payload.length, "bulk");
   const t0 = performance.now();

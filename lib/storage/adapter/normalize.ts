@@ -13,6 +13,10 @@ export function normalizeDoc(doc: DocumentRecord): DocumentRecord {
   const content: MyValue = Array.isArray(doc.content)
     ? doc.content
     : cloneValue(INITIAL_DOCUMENT_CONTENT);
+  const initialContentSource = (doc as DocumentRecord).initialContent;
+  const initialContent: MyValue = Array.isArray(initialContentSource)
+    ? cloneValue(initialContentSource)
+    : cloneValue(content);
   const title =
     typeof doc.title === "string" && doc.title.trim()
       ? doc.title
@@ -21,10 +25,17 @@ export function normalizeDoc(doc: DocumentRecord): DocumentRecord {
   return {
     ...doc,
     content,
+    initialContent,
     title,
     version: typeof doc.version === "number" ? doc.version : 1,
     createdAt: typeof doc.createdAt === "number" ? doc.createdAt : now,
     updatedAt: typeof doc.updatedAt === "number" ? doc.updatedAt : now,
+    contentVersion:
+      typeof doc.contentVersion === "number"
+        ? doc.contentVersion
+        : typeof doc.updatedAt === "number"
+          ? doc.updatedAt
+          : now,
     deletedAt: typeof doc.deletedAt === "number" ? doc.deletedAt : undefined,
   };
 }

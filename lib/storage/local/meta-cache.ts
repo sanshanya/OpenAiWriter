@@ -11,7 +11,19 @@ export function loadMetas(): DocumentMeta[] {
     if (!raw) return [];
     const arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return [];
-    return arr;
+    return arr
+      .map((meta: Partial<DocumentMeta>) => ({
+        id: typeof meta?.id === "string" ? meta.id : "",
+        title: typeof meta?.title === "string" ? meta.title : "",
+        createdAt: typeof meta?.createdAt === "number" ? meta.createdAt : Date.now(),
+        updatedAt: typeof meta?.updatedAt === "number" ? meta.updatedAt : Date.now(),
+        version: typeof meta?.version === "number" ? meta.version : 1,
+        contentVersion:
+          typeof meta?.contentVersion === "number" ? meta.contentVersion : 0,
+        deletedAt:
+          typeof meta?.deletedAt === "number" ? meta.deletedAt : null,
+      }))
+      .filter((meta) => meta.id.length > 0) as DocumentMeta[];
   } catch {
     return [];
   }

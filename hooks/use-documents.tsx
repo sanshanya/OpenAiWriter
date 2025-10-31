@@ -15,6 +15,7 @@ const toMeta = (doc: DocumentRecord): DocumentMeta => ({
   createdAt: doc.createdAt,
   updatedAt: doc.updatedAt,
   version: doc.version,
+  contentVersion: doc.contentVersion,
   deletedAt: doc.deletedAt ?? null,
 });
 
@@ -86,6 +87,10 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
               version: snap.version,
               updatedAt: snap.updatedAt,
               deletedAt: snap.deletedAt,
+              contentVersion:
+                typeof snap.contentVersion === "number"
+                  ? snap.contentVersion
+                  : Date.now(),
             },
           });
         } else {
@@ -127,6 +132,8 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
             updatedAt: firstLiveMeta.updatedAt,
             version: firstLiveMeta.version,
             deletedAt: firstLiveMeta.deletedAt ?? undefined,
+            contentVersion: 0,
+            initialContent: createPlaceholderContent(),
             content: createPlaceholderContent(),
           });
 
@@ -137,6 +144,8 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
             : Storage.normalizeDoc({
                 ...m,
                 deletedAt: m.deletedAt ?? undefined,
+                contentVersion: 0,
+                initialContent: createPlaceholderContent(),
                 content: createPlaceholderContent(),
               })
         );
@@ -337,11 +346,15 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
   const selectDocument = React.useCallback(
     async (id: string) => {
+      const currentActiveId = stateRef.current.activeId;
+      if (currentActiveId && currentActiveId !== id) {
+        dispatch({ type: "SNAPSHOT_CONTENT", id: currentActiveId, now: Date.now() });
+      }
       // 关键：为避免“点开空白”，先水合，再 SELECT
       await hydrateDocContent(id);
       dispatch({ type: "SELECT", id });
     },
-    [hydrateDocContent, dispatch]
+    [hydrateDocContent, dispatch],
   );
 
   // 关键：携带 docId，晚到的 onChange 也只会落在“自己的文档”上

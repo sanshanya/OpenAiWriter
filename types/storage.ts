@@ -10,13 +10,23 @@ export type DocumentRecord = {
   id: string;
   title: string;
   content: MyValue;
+  initialContent: MyValue;
   createdAt: number;
   updatedAt: number;
   version: number;
+  contentVersion: number;
   deletedAt?: number | null;
 };
 
-export type DocumentMeta = Omit<DocumentRecord, "content">;
+export type DocumentMeta = {
+  id: string;
+  title: string;
+  createdAt: number;
+  updatedAt: number;
+  version: number;
+  contentVersion: number;
+  deletedAt: number | null;
+};
 
 export function cloneValue<T>(value: T): T {
   if (typeof structuredClone === "function") return structuredClone(value);
@@ -38,6 +48,7 @@ export function deriveTitle(value: MyValue, fallback: string): string {
 export function makeDefaultDoc(): DocumentRecord {
   const now = Date.now();
   const content = cloneValue(INITIAL_DOCUMENT_CONTENT);
+  const initialContent = cloneValue(content);
   const cryptoSource =
     typeof globalThis.crypto === "object" ? globalThis.crypto : undefined;
   const rid =
@@ -49,8 +60,10 @@ export function makeDefaultDoc(): DocumentRecord {
     id: rid,
     title: deriveTitle(content, INITIAL_DOCUMENT_TITLE),
     content,
+    initialContent,
     createdAt: now,
     updatedAt: now,
     version: 1,
+    contentVersion: now,
   };
 }

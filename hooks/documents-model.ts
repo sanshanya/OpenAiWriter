@@ -23,6 +23,7 @@ export type Action =
   | { type: "SELECT"; id: string }
   | { type: "CREATE"; now: number }
   | { type: "UPDATE_CONTENT"; id: string; value: MyValue; now: number }
+  | { type: "SNAPSHOT_CONTENT"; id: string; now: number }
   | { type: "DELETE_SOFT"; id: string; now: number }
   | { type: "RESTORE"; id: string; now: number }
   | { type: "PURGE"; id: string }
@@ -35,6 +36,7 @@ export type Action =
         version: number;
         updatedAt: number;
         deletedAt?: number | null;
+        contentVersion?: number;
       };
     }
   | { type: "BUMP_VERSION"; id: string; toVersion: number; now: number };
@@ -71,12 +73,28 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
         id: nanoid(),
         title: deriveTitle(content, INITIAL_DOCUMENT_TITLE),
         content,
+        initialContent: content,
         createdAt: now,
         updatedAt: now,
         version: 1,
+        contentVersion: now,
       };
       const docs = [doc, ...state.docs];
       return { docs, activeId: doc.id };
+    }
+
+    case "SNAPSHOT_CONTENT": {
+      const { id, now } = action;
+      const docs = state.docs.map((d) =>
+        d.id === id
+          ? {
+              ...d,
+              initialContent: cloneValue(d.content),
+              contentVersion: now,
+            }
+          : d,
+      );
+      return { ...state, docs };
     }
 
     case "UPDATE_CONTENT": {
@@ -89,6 +107,7 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
               title: deriveTitle(value, d.title),
               updatedAt: now,
               version: (d.version ?? 1) + 1,
+              contentVersion: d.contentVersion,
             }
           : d
       );
@@ -139,18 +158,22 @@ export function documentsReducer(state: ModelState, action: Action): ModelState 
 
     case "APPLY_SERVER_STATE": {
       const { id, server } = action;
-      const docs = state.docs.map((d) =>
-        d.id === id
-          ? {
-              ...d,
-              title: server.title ?? d.title,
-              content: server.content,
-              version: server.version,
-              updatedAt: server.updatedAt,
-              deletedAt: server.deletedAt ?? undefined,
-            }
-          : d
-      );
+      const docs = state.docs.map((d) => {
+        if (d.id !== id) return d;
+        return {
+          ...d,
+          title: server.title ?? d.title,
+          content: cloneValue(server.content),
+          initialContent: cloneValue(server.content),
+          version: server.version,
+          updatedAt: server.updatedAt,
+          deletedAt: server.deletedAt ?? undefined,
+          contentVersion:
+            typeof server.contentVersion === "number"
+              ? server.contentVersion
+              : Date.now(),
+        };
+      });
       // 若目标被服务器删除，activeId 换到下一个未删除文档；否则保持不变/继续指向 id
       const activeId =
         (docs.find((x) => x.id === id && x.deletedAt == null) && id) ||

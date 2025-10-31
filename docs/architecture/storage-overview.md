@@ -5,7 +5,8 @@
 ## 核心结构
 
 - **类型真源**：`types/storage.ts`
-  - `DocumentRecord` / `DocumentMeta` 统一描述运行态与持久化态字段。
+  - `DocumentRecord` / `DocumentMeta` 统一描述运行态与持久化态字段，运行态新增 `initialContent`，持久化存 `contentVersion`。
+  - `contentVersion`：记录内容快照版本，仅在水合或外部合并时递增，用于驱动编辑器重挂载。
   - `cloneValue` / `deriveTitle` / `makeDefaultDoc` 提供共享工具函数。
 - **常量配置**：`lib/storage/constants.ts`
   - `STORAGE_KEYS`：localStorage / IndexedDB 标识。
@@ -39,6 +40,7 @@
 - **类型新增必更新**：调整文档字段时同步修改 `types/storage.ts` + 相关工具。
 - **读路径默认安全**：`idbGetDoc` 等读取接口已内建 `normalizeDoc`，上层禁止重复兜底。
 - **持久化只关心已水合文档**：`loadedContentRef` 是写入阀门，新增路径需尊重该约束。
+- **水合需刷新 contentVersion**：本地或远端合并内容时必须递增 `contentVersion`（例如设为 `Date.now()`），以便前端通过 `${doc.id}:${contentVersion}` 重建编辑器。
 - **退出写入专用**：`saveMetasImmediate` 与 `flushPendingWritesNow` 仅允许退出/隐藏流程调用。
 - **记录重大改动**：架构决策统一收敛到 `docs/adr`，同时在本页更新可操作的入口说明。
 

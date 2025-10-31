@@ -8,6 +8,7 @@ import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
 import { Editor, EditorContainer } from "@/components/ui/editor";
 import { useDocuments } from "@/hooks/use-documents";
 import type { MyValue } from "@/types/plate-elements";
+import { cloneValue, type DocumentRecord } from "@/types/storage";
 
 /**
  * 单文档编辑实例
@@ -16,27 +17,34 @@ import type { MyValue } from "@/types/plate-elements";
  */
 const EditorInstance = React.memo(
   ({
-    docId,
-    content,
+    doc,
     onContentChange,
   }: {
-    docId: string;
-    content: MyValue;
+    doc: DocumentRecord;
     onContentChange: (docId: string, value: MyValue) => void;
   }) => {
-    const initialValue = React.useMemo(() => content, [content]);
+    const contentVersion = doc.contentVersion ?? 0;
+    const initialValue = React.useMemo(
+      () => cloneValue<MyValue>(doc.initialContent),
+      [doc.initialContent],
+    );
+
     const { editor } = useEditorKit(initialValue);
     useEditorHotkeys(editor);
 
     const handleChange = React.useCallback(
       ({ value }: { value: MyValue }) => {
-        onContentChange(docId, value); // 关键：携带 docId
+        onContentChange(doc.id, value);
       },
-      [docId, onContentChange]
+      [doc.id, onContentChange],
     );
 
     return (
-      <Plate<MyValue> editor={editor} onChange={handleChange}>
+      <Plate<MyValue>
+        key={`${doc.id}:${contentVersion}`}
+        editor={editor}
+        onChange={handleChange}
+      >
         <EditorContainer>
           <Editor
             variant="fullWidth"
@@ -46,7 +54,7 @@ const EditorInstance = React.memo(
         </EditorContainer>
       </Plate>
     );
-  }
+  },
 );
 EditorInstance.displayName = "EditorInstance";
 
@@ -63,12 +71,25 @@ export function PlateEditor() {
     );
   }
 
+  const isReady =
+    Array.isArray(activeDocument.content) &&
+    ((activeDocument.contentVersion ?? 0) > 0 ||
+      activeDocument.content.length > 0);
+
+  if (!isReady) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <span className="rounded-full bg-neutral-900/80 px-3 py-1 text-xs text-neutral-50 shadow">
+          正在加载文档…
+        </span>
+      </div>
+    );
+  }
+
   return (
     <EditorInstance
-      key={activeDocument.id}
-      docId={activeDocument.id}
-      content={activeDocument.content}
-      onContentChange={updateDocumentContent} // (docId, value) 形式
+      doc={activeDocument}
+      onContentChange={updateDocumentContent}
     />
   );
 }
