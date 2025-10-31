@@ -4,7 +4,7 @@
 import type { Value } from "platejs";
 import { STORAGE_CONFIG } from "@/lib/storage/constants";
 import type { DocumentMeta } from "@/types/storage";
-import { idbPutDoc, idbPutMany } from "@/lib/storage/local/idb";
+import { idbPutDoc, idbPutMany, markIndexedDBSyncedNow } from "@/lib/storage/local/idb";
 import { StorageLogger } from "@/lib/storage/logger";
 
 type PersistTask = {
@@ -43,6 +43,7 @@ function scheduleFlushOnIdle() {
       }
       const cost = Math.round(performance.now() - t0);
       StorageLogger.perf("idbFlush", cost);
+      markIndexedDBSyncedNow();
     })().catch((error) => {
       StorageLogger.error("persistFlush", error);
     });
@@ -93,6 +94,7 @@ export async function flushPendingWritesNow(): Promise<void> {
     });
     const cost = Math.round(performance.now() - t0);
     StorageLogger.perf("idbFlushNow", cost);
+    markIndexedDBSyncedNow();
   } catch (error) {
     StorageLogger.error("persistFlushNow", error);
     throw error;
