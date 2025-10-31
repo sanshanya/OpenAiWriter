@@ -1,26 +1,27 @@
-﻿# Docs Index
+# Docs Index
 
 ## 核心指南
-- AI生产实践指导.md — 团队写作与交付规范。
-- editor-architecture.md — 编辑器骨架总览（插件真源、渲染映射、设置层、持久化入口）。
-- ai-architecture.md — AI 插件基线（CopilotKit / AIKit / Helper 以及路由策略）。
-- storage-overview.md — 持久化当前基线与 Facade 入口说明。
-
-## 插件生态
-- plugin-workflow.md — 接入/裁剪插件的流水线（依赖、UI、验证、文档约定）。
-- markdown-plugin-coverage.md — Markdown 能力矩阵与依赖清单。
-- kit-alignment.md — 与官方模板的对齐状态。
-- kit-diff.md — 与官方模板的差异追踪。
+- architecture/ai-architecture.md — AI 插件基线与路由策略。
+- architecture/editor-architecture.md — 编辑器骨架（插件真源、渲染映射、设置层）。
+- architecture/storage-overview.md — 本地持久化真源与 Facade 入口。
 
 ## 项目规划
-- TODO.md — 迭代路线图（Stage 1-5 进度与后续目标）。
-- ADR/ — 架构决策记录（以编号区分主题）。
+- TODO.md — 当前迭代路线与优先级。
+- adr/ — 编号决策记录，配合代码约束。
+
+## 操作手册
+- runbook/AI生产实践指导.md — 团队写作与交付准则。
+- runbook/plugin-workflow.md — 插件接入/裁剪流水线。
+- runbook/markdown-plugin-coverage.md — Markdown 能力矩阵与依赖清单。
+- runbook/kit-alignment.md — 与官方模板的对齐状态。
+- runbook/kit-diff.md — 与官方模板的差异追踪。
 
 ## 存档（Archive）
-- archive/legacy-storage/ — 历史存储方案、失败案例、代码审查往来。
-- archive/templates/ — Plate Playground 技术解读等参考资料。
-- archive/ — 其他阶段性文档（含 V1/V2/V3 复盘、Bug 修复总结）。
+- archive/legacy-storage/ — 历史存储方案、失败案例与复盘。
+- archive/templates/ — 参考模板与外部资料。
+- archive/ — 其他阶段性文档（V1/V2/V3 复盘、Bug 修复总结等）。
 
 > 约定：
-> - 新增或裁剪插件时，需同步更新 `plugin-workflow.md`、`markdown-plugin-coverage.md`、`kit-diff.md`。
-> - 对存储层的结构性调整，请更新 `storage-overview.md` 并补充对应 ADR。
+> - 改动 `/src/lib/storage/**` 必须同步更新 `architecture/storage-overview.md` 并视情况补充 ADR。
+> - 新增或裁剪插件需更新 `runbook/plugin-workflow.md`、`runbook/markdown-plugin-coverage.md`、`runbook/kit-diff.md`。
+> - 文档新增/调整请遵循 `docs/文档指南.md`，从对应目录的 `TEMPLATE.md` 复制起步。

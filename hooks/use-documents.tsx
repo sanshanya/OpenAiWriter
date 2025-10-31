@@ -4,10 +4,8 @@
 import * as React from "react";
 import { type Value } from "platejs";
 import { DisasterRecoveryDialog } from "@/components/storage/disaster-recovery-dialog";
-import { ConflictDialog } from "@/components/storage/conflict-dialog";
-import { deriveTitle, type DocumentMeta, type DocumentRecord } from "@/types/storage";
+import { type DocumentMeta, type DocumentRecord } from "@/types/storage";
 import * as Storage from "@/lib/storage";
-import type { SyncConflict } from "@/lib/storage";
 
 const createPlaceholderContent = (): Value => [] as Value;
 
@@ -52,6 +50,10 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
     docs: [],
     activeId: null,
   } as ModelState);
+  const stateRef = React.useRef(state);
+  React.useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // ✅ 记录哪些文档“正文已加载到内存”（已水合）
   //   - 懒加载时，只有在这里登记过的文档才会持久化
@@ -116,15 +118,16 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
         // 先水合这篇（在内存准备真实内容）
         const snap = await Storage.idbGetDoc(firstLiveMeta.id); // 可能为 null（旧态或首次）
-        const hydratedFirst: DocumentRecord = {
-          id: firstLiveMeta.id,
-          title: (snap?.title ?? firstLiveMeta.title) || "(未命名)",
-          createdAt: firstLiveMeta.createdAt ?? firstLiveMeta.updatedAt,
-          updatedAt: snap?.updatedAt ?? firstLiveMeta.updatedAt,
-          version: snap?.version ?? firstLiveMeta.version,
-          deletedAt: snap?.deletedAt ?? firstLiveMeta.deletedAt ?? undefined,
-          content: snap?.content ?? createPlaceholderContent(),
-        };
+        const hydratedFirst: DocumentRecord =
+          snap ?? {
+            id: firstLiveMeta.id,
+            title: firstLiveMeta.title || "(未命名)",
+            createdAt: firstLiveMeta.createdAt ?? firstLiveMeta.updatedAt,
+            updatedAt: firstLiveMeta.updatedAt,
+            version: firstLiveMeta.version,
+            deletedAt: firstLiveMeta.deletedAt ?? undefined,
+            content: createPlaceholderContent(),
+          };
 
         // 其它文档先占位（content: []），等用户点开时再懒加载
         const initialDocs: DocumentRecord[] = metas.map((m) =>
@@ -184,55 +187,48 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
   }, [dispatch]);
 
   // =========================
-  // 远端冲突订阅（保持原能力；是否触发远端由后台循环控制）
+  // 外部变更订阅（当前仅占位，未来接入多端同步时扩展）
   // =========================
-  const [conflictsOpen, setConflictsOpen] = React.useState(false);
-  const [conflictItems, setConflictItems] = React.useState<{
-    byId: Record<string, SyncConflict>;
-    list: Array<{
-      id: string;
-      title?: string;
-      clientVersion: number;
-      serverVersion: number;
-      serverUpdatedAt: number;
-      serverDeletedAt?: number | null;
-      serverPreview?: string;
-    }>;
-  }>({ byId: {}, list: [] });
+  React.useEffect(() => {
+    return Storage.onExternalChange(() => {
+      // 占位：后续引入多端事件时在此处调度刷新策略
+    });
+  }, []);
 
   React.useEffect(() => {
-    // 订阅远端冲突
-    const off = Storage.onConflicts((arr) => {
-      // 把服务器返回的冲突补上本地标题/预览
-      const byId: Record<string, SyncConflict> = {};
-      arr.forEach((c) => (byId[c.id] = c));
+    let flushing = false;
+    const flush = async () => {
+      if (flushing) return;
+      flushing = true;
+      try {
+        const snapshot = stateRef.current;
+        const metas = snapshot.docs.map((doc) => toMeta(doc));
+        Storage.saveMetasImmediate(metas);
+        await Storage.flushPendingWritesNow();
+      } catch (error) {
+        console.warn("[DocumentsProvider] flush on exit failed", error);
+      } finally {
+        flushing = false;
+      }
+    };
 
-      const list = arr.map((c) => {
-        const local = state.docs.find((d) => d.id === c.id);
-        // 取服务器预览（JSON → 文本首段截断）
-        let serverPreview = "";
-        try {
-          const parsed = JSON.parse(c.serverContent);
-          if (Array.isArray(parsed)) {
-            serverPreview = deriveTitle(parsed as Value, "").slice(0, 80);
-          }
-        } catch {}
-        return {
-          id: c.id,
-          title: local?.title ?? c.serverTitle ?? "(未命名)",
-          clientVersion: c.clientVersion,
-          serverVersion: c.serverVersion,
-          serverUpdatedAt: c.serverUpdatedAt,
-          serverDeletedAt: c.serverDeletedAt ?? null,
-          serverPreview,
-        };
-      });
+    const handlePageHide = () => {
+      void flush();
+    };
 
-      setConflictItems({ byId, list });
-      setConflictsOpen(true);
-    });
-    return off;
-  }, [state.docs]);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        void flush();
+      }
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   // =========================
   // Derived（派生状态）
@@ -381,60 +377,6 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
     [dispatch]
   );
 
-  const handleUseServer = React.useCallback(
-    (id: string) => {
-      const c = conflictItems.byId[id];
-      if (!c) return;
-      let content: Value = createPlaceholderContent();
-      try {
-        const parsed = JSON.parse(c.serverContent);
-        if (Array.isArray(parsed)) {
-          content = parsed as Value;
-        }
-      } catch {
-        content = createPlaceholderContent();
-      }
-      loadedContentRef.current.add(id); // 服务器状态落地后，视为已加载
-      dispatch({
-        type: "APPLY_SERVER_STATE",
-        id,
-        server: {
-          title: c.serverTitle,
-          content,
-          version: c.serverVersion,
-          updatedAt: c.serverUpdatedAt,
-          deletedAt: c.serverDeletedAt ?? undefined,
-        },
-      });
-      // 关闭对话框（若全部处理完）
-      setConflictItems((prev) => {
-        const next = prev.list.filter((x) => x.id !== id);
-        if (next.length === 0) setConflictsOpen(false);
-        return { ...prev, list: next };
-      });
-    },
-    [conflictItems.byId, dispatch]
-  );
-
-  const handleUseLocal = React.useCallback(
-    (id: string, serverVersion: number) => {
-      // 把本地版本抬到 serverVersion+1，触发下一轮同步覆盖服务器
-      loadedContentRef.current.add(id); // 后续可持久化
-      dispatch({
-        type: "BUMP_VERSION",
-        id,
-        toVersion: serverVersion + 1,
-        now: Date.now(),
-      });
-      setConflictItems((prev) => {
-        const next = prev.list.filter((x) => x.id !== id);
-        if (next.length === 0) setConflictsOpen(false);
-        return { ...prev, list: next };
-      });
-    },
-    [dispatch]
-  );
-
   // =========================
   // Context value
   // =========================
@@ -473,13 +415,6 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         onClose={() => setRecoveryOpen(false)}
         docs={recoveryList}
         onRecover={handleRecoverFromIDB}
-      />
-      <ConflictDialog
-        open={conflictsOpen}
-        items={conflictItems.list}
-        onUseServer={handleUseServer}
-        onUseLocal={handleUseLocal}
-        onClose={() => setConflictsOpen(false)}
       />
     </DocumentsContext.Provider>
   );

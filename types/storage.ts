@@ -37,8 +37,15 @@ export function deriveTitle(value: Value, fallback: string): string {
 export function makeDefaultDoc(): DocumentRecord {
   const now = Date.now();
   const content = cloneValue(INITIAL_DOCUMENT_CONTENT);
+  const cryptoSource =
+    typeof globalThis.crypto === "object" ? globalThis.crypto : undefined;
+  const rid =
+    typeof cryptoSource?.randomUUID === "function"
+      ? cryptoSource.randomUUID()
+      :
+    `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
   return {
-    id: crypto.randomUUID(),
+    id: rid,
     title: deriveTitle(content as Value, INITIAL_DOCUMENT_TITLE),
     content,
     createdAt: now,

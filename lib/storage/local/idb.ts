@@ -4,6 +4,7 @@
 import type { DocumentRecord } from "@/types/storage";
 import { STORAGE_KEYS } from "@/lib/storage/constants";
 import { StorageLogger } from "@/lib/storage/logger";
+import { normalizeDoc } from "@/lib/storage/adapter/normalize";
 
 const DB_NAME = STORAGE_KEYS.IDB_NAME;
 const STORE_NAME = STORAGE_KEYS.IDB_STORE;
@@ -47,7 +48,7 @@ export async function idbGetDoc(id: string): Promise<DocumentRecord | null> {
       req.onsuccess = () => resolve((req.result as DocumentRecord) ?? null);
       req.onerror = () => reject(req.error);
     });
-    return doc;
+    return doc ? normalizeDoc(doc) : null;
   } finally {
     db.close();
   }
@@ -83,6 +84,47 @@ export async function idbPutDoc(
     });
   } catch (err) {
     StorageLogger.error("idbPutDoc", err);
+  } finally {
+    db.close();
+  }
+}
+
+export async function idbPutMany(
+  partials: Array<Partial<DocumentRecord> & { id: string }>
+): Promise<void> {
+  if (partials.length === 0) return;
+
+  const db = await openDB();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      let aborted = false;
+
+      for (const partial of partials) {
+        const getReq = store.get(partial.id);
+        getReq.onsuccess = () => {
+          const existing = (getReq.result as DocumentRecord) ?? {};
+          const merged = {
+            ...existing,
+            ...partial,
+            id: partial.id,
+          };
+          store.put(merged);
+        };
+        getReq.onerror = () => {
+          if (!aborted) {
+            aborted = true;
+            tx.abort();
+          }
+        };
+      }
+
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (err) {
+    StorageLogger.error("idbPutMany", err);
   } finally {
     db.close();
   }

@@ -4,7 +4,7 @@
 import type { Value } from "platejs";
 import { STORAGE_CONFIG } from "@/lib/storage/constants";
 import type { DocumentMeta } from "@/types/storage";
-import { idbPutDoc } from "@/lib/storage/local/idb";
+import { idbPutDoc, idbPutMany } from "@/lib/storage/local/idb";
 import { StorageLogger } from "@/lib/storage/logger";
 
 type PersistTask = {
@@ -23,6 +23,9 @@ function scheduleFlushOnIdle() {
     idleScheduled = false;
     const tasks = Array.from(pending.values());
     pending.clear();
+    if (tasks.length === 0) {
+      return;
+    }
 
     (async () => {
       const t0 = performance.now();
@@ -60,4 +63,38 @@ function scheduleFlushOnIdle() {
 export function persistDocChange(meta: DocumentMeta, content: Value) {
   pending.set(meta.id, { meta, content });
   scheduleFlushOnIdle();
+}
+
+export async function flushPendingWritesNow(): Promise<void> {
+  const tasks = Array.from(pending.values());
+  pending.clear();
+  idleScheduled = false;
+
+  if (tasks.length === 0) {
+    StorageLogger.perf("idbFlushNow", 0);
+    return;
+  }
+
+  const payload = tasks.map(({ meta, content }) => ({
+    id: meta.id,
+    title: meta.title,
+    version: meta.version,
+    updatedAt: meta.updatedAt,
+    createdAt: meta.createdAt,
+    deletedAt: meta.deletedAt ?? undefined,
+    content,
+  }));
+
+  const t0 = performance.now();
+  try {
+    await idbPutMany(payload);
+    tasks.forEach(({ meta }) => {
+      StorageLogger.persist(meta.id, meta.version);
+    });
+    const cost = Math.round(performance.now() - t0);
+    StorageLogger.perf("idbFlushNow", cost);
+  } catch (error) {
+    StorageLogger.error("persistFlushNow", error);
+    throw error;
+  }
 }

@@ -82,9 +82,7 @@ This stage transitions from a separate AI panel to a deeply integrated, contextu
 
 - [X] `hooks/use-documents.tsx` + `lib/storage` Facade，IndexedDB 为主、localStorage 兜底。
 - [X] `types/storage.ts`、`lib/storage/constants.ts` 建立类型/常量真源。
-- [X] 文档整合：`docs/storage-overview.md` 汇总现状，历史方案归档至 `docs/archive/legacy-storage/`。
-- [ ] `types/plate-elements.ts` 补齐，保证插件类型单一真源。
-- [ ] 解决 Markdown / HTML 混合粘贴失败问题。
+- [X] 文档整合：`docs/architecture/storage-overview.md` 汇总现状，历史方案归档至 `docs/archive/legacy-storage/`。
 
 ---
 

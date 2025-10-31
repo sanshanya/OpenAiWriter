@@ -42,3 +42,20 @@ export function saveMetas(metas: DocumentMeta[]): void {
   const stable = [...metas].sort((a, b) => b.updatedAt - a.updatedAt);
   saveMetasDebounced(stable, STORAGE_CONFIG.META_SAVE_DEBOUNCE_MS);
 }
+
+export function saveMetasImmediate(metas: DocumentMeta[]): void {
+  const stable = [...metas].sort((a, b) => b.updatedAt - a.updatedAt);
+  if (saveTimer) {
+    window.clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  try {
+    const next = JSON.stringify(stable);
+    if (next !== lastSerialized) {
+      localStorage.setItem(META_KEY, next);
+      lastSerialized = next;
+    }
+  } catch {
+    // 静默失败，退出流程不应阻塞
+  }
+}
