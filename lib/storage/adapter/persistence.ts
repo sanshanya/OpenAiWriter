@@ -14,6 +14,7 @@ type PersistTask = {
 
 const pending = new Map<string, PersistTask>();
 let idleScheduled = false;
+const BULK_WRITE_THRESHOLD = 10;
 
 function scheduleFlushOnIdle() {
   if (idleScheduled) return;
@@ -29,17 +30,26 @@ function scheduleFlushOnIdle() {
 
     (async () => {
       const t0 = performance.now();
-      for (const { meta, content } of tasks) {
-        await idbPutDoc({
-          id: meta.id,
-          title: meta.title,
-          version: meta.version,
-          updatedAt: meta.updatedAt,
-          createdAt: meta.createdAt,
-          deletedAt: meta.deletedAt ?? undefined,
-          content,
+      const payload = tasks.map(({ meta, content }) => ({
+        id: meta.id,
+        title: meta.title,
+        version: meta.version,
+        updatedAt: meta.updatedAt,
+        createdAt: meta.createdAt,
+        deletedAt: meta.deletedAt ?? undefined,
+        content,
+      }));
+
+      if (payload.length >= BULK_WRITE_THRESHOLD) {
+        await idbPutMany(payload);
+        payload.forEach(({ id, version }) => {
+          StorageLogger.persist(id, version);
         });
-        StorageLogger.persist(meta.id, meta.version);
+      } else {
+        for (const entry of payload) {
+          await idbPutDoc(entry);
+          StorageLogger.persist(entry.id, entry.version);
+        }
       }
       const cost = Math.round(performance.now() - t0);
       StorageLogger.perf("idbFlush", cost);
@@ -67,6 +77,7 @@ export function persistDocChange(meta: DocumentMeta, content: Value) {
 }
 
 export async function flushPendingWritesNow(): Promise<void> {
+  // 仅退出流程调用
   const tasks = Array.from(pending.values());
   pending.clear();
   idleScheduled = false;

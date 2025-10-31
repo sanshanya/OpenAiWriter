@@ -44,6 +44,7 @@ export function saveMetas(metas: DocumentMeta[]): void {
 }
 
 export function saveMetasImmediate(metas: DocumentMeta[]): void {
+  // 仅退出流程调用
   const stable = [...metas].sort((a, b) => b.updatedAt - a.updatedAt);
   if (saveTimer) {
     window.clearTimeout(saveTimer);

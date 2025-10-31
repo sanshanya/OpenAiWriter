@@ -28,6 +28,7 @@
      - 差集 ID → `Storage.removeDocsFromIDB(ids)`。
 3. **写入调度**：`lib/storage/adapter/persistence.ts`
    - 采用 `Map` 批次聚合 + `requestIdleCallback`/`setTimeout` 异步 flush。
+   - 空闲 flush 任务数 ≥10 时走单事务 `idbPutMany`，其余沿用散写 `idbPutDoc`。
    - 落盘后通过 `StorageLogger` 记录耗时。
 4. **恢复逻辑**：`lib/storage/adapter/recovery.ts`
    - 统一使用 `DocumentRecord`，负责标题兜底、墓碑清理、冷备清扫。
@@ -36,7 +37,9 @@
 
 - **不要绕过 Facade**：新的读写逻辑一律经由 `lib/storage/index.ts`，避免再次出现多真源。
 - **类型新增必更新**：调整文档字段时同步修改 `types/storage.ts` + 相关工具。
+- **读路径默认安全**：`idbGetDoc` 等读取接口已内建 `normalizeDoc`，上层禁止重复兜底。
 - **持久化只关心已水合文档**：`loadedContentRef` 是写入阀门，新增路径需尊重该约束。
+- **退出写入专用**：`saveMetasImmediate` 与 `flushPendingWritesNow` 仅允许退出/隐藏流程调用。
 - **记录重大改动**：架构决策统一收敛到 `docs/adr`，同时在本页更新可操作的入口说明。
 
 ## 后续关注
