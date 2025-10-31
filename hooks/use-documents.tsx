@@ -85,7 +85,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
               content: snap.content,
               version: snap.version,
               updatedAt: snap.updatedAt,
-              deletedAt: snap.deletedAt ?? undefined,
+              deletedAt: snap.deletedAt,
             },
           });
         } else {
