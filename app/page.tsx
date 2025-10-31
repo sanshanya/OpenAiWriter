@@ -83,6 +83,7 @@ function DocumentSidebar({
   const {
     documents,
     activeDocumentId,
+    isHydrated,
     selectDocument,
     createDocument,
     deleteDocument,
@@ -103,7 +104,7 @@ function DocumentSidebar({
           </button>
         </div>
 
-        {!activeDocumentId ? (
+        {!isHydrated ? (
           <div className="text-xs text-neutral-500">正在加载文档…</div>
         ) : documents.length === 0 ? (
           <div className="rounded-md border border-dashed border-neutral-200 px-3 py-2 text-xs text-neutral-500">

@@ -24,7 +24,7 @@ export function DisasterRecoveryDialog({
   open: boolean;
   onClose: () => void;
   docs: RecoveryMeta[];
-  onRecover: () => void;
+  onRecover: () => void | Promise<void>;
 }) {
   return (
     <Dialog open={open} onOpenChange={(v) => (!v ? onClose() : null)}>
