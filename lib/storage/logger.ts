@@ -7,6 +7,11 @@ export const StorageLogger = {
       console.debug("[Storage] Persist", { docId, version });
     }
   },
+  batch(op: "idbFlush" | "idbFlushNow", count: number, strategy: "bulk" | "single") {
+    if (DEBUG) {
+      console.debug("[Storage] Batch", { op, count, strategy });
+    }
+  },
   recovery(count: number, source: "metas" | "idb") {
     console.info("[Storage] Recovery", { count, source });
   },

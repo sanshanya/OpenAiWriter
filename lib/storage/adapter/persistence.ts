@@ -14,6 +14,7 @@ type PersistTask = {
 
 const pending = new Map<string, PersistTask>();
 let idleScheduled = false;
+const BULK_WRITE_THRESHOLD = STORAGE_CONFIG.IDB_BULK_WRITE_THRESHOLD;
 
 function scheduleFlushOnIdle() {
   if (idleScheduled) return;
@@ -29,17 +30,28 @@ function scheduleFlushOnIdle() {
 
     (async () => {
       const t0 = performance.now();
-      for (const { meta, content } of tasks) {
-        await idbPutDoc({
-          id: meta.id,
-          title: meta.title,
-          version: meta.version,
-          updatedAt: meta.updatedAt,
-          createdAt: meta.createdAt,
-          deletedAt: meta.deletedAt ?? undefined,
-          content,
+      const payload = tasks.map(({ meta, content }) => ({
+        id: meta.id,
+        title: meta.title,
+        version: meta.version,
+        updatedAt: meta.updatedAt,
+        createdAt: meta.createdAt,
+        deletedAt: meta.deletedAt ?? undefined,
+        content,
+      }));
+
+      if (payload.length >= BULK_WRITE_THRESHOLD) {
+        StorageLogger.batch("idbFlush", payload.length, "bulk");
+        await idbPutMany(payload);
+        payload.forEach(({ id, version }) => {
+          StorageLogger.persist(id, version);
         });
-        StorageLogger.persist(meta.id, meta.version);
+      } else {
+        StorageLogger.batch("idbFlush", payload.length, "single");
+        for (const entry of payload) {
+          await idbPutDoc(entry);
+          StorageLogger.persist(entry.id, entry.version);
+        }
       }
       const cost = Math.round(performance.now() - t0);
       StorageLogger.perf("idbFlush", cost);
@@ -67,12 +79,12 @@ export function persistDocChange(meta: DocumentMeta, content: Value) {
 }
 
 export async function flushPendingWritesNow(): Promise<void> {
+  // 仅退出流程调用
   const tasks = Array.from(pending.values());
   pending.clear();
   idleScheduled = false;
 
   if (tasks.length === 0) {
-    StorageLogger.perf("idbFlushNow", 0);
     return;
   }
 
@@ -86,6 +98,7 @@ export async function flushPendingWritesNow(): Promise<void> {
     content,
   }));
 
+  StorageLogger.batch("idbFlushNow", payload.length, "bulk");
   const t0 = performance.now();
   try {
     await idbPutMany(payload);

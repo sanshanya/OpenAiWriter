@@ -119,21 +119,26 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         // 先水合这篇（在内存准备真实内容）
         const snap = await Storage.idbGetDoc(firstLiveMeta.id); // 可能为 null（旧态或首次）
         const hydratedFirst: DocumentRecord =
-          snap ?? {
+          snap ??
+          Storage.normalizeDoc({
             id: firstLiveMeta.id,
-            title: firstLiveMeta.title || "(未命名)",
-            createdAt: firstLiveMeta.createdAt ?? firstLiveMeta.updatedAt,
+            title: firstLiveMeta.title,
+            createdAt: firstLiveMeta.createdAt,
             updatedAt: firstLiveMeta.updatedAt,
             version: firstLiveMeta.version,
             deletedAt: firstLiveMeta.deletedAt ?? undefined,
             content: createPlaceholderContent(),
-          };
+          });
 
         // 其它文档先占位（content: []），等用户点开时再懒加载
         const initialDocs: DocumentRecord[] = metas.map((m) =>
           m.id === hydratedFirst.id
             ? hydratedFirst
-            : { ...m, content: createPlaceholderContent() }
+            : Storage.normalizeDoc({
+                ...m,
+                deletedAt: m.deletedAt ?? undefined,
+                content: createPlaceholderContent(),
+              })
         );
 
         // 标记默认选中文档为已加载（避免被占位覆盖回 IDB）
