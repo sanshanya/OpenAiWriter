@@ -21,7 +21,8 @@ export function useYDocMetaBridge(
   useEffect(() => {
     if (!docId || !ydoc) return undefined;
 
-    const fragment = ydoc.getXmlFragment("content");
+    // 与 use-yjs-editor 保持一致，使用 ydoc.get
+    const fragment = ydoc.get('content', Y.XmlText);
 
     const commit = () => {
       const now = Date.now();
@@ -82,7 +83,7 @@ export function useYDocMetaBridge(
   }, [docId, setMeta, throttleMs, ydoc]);
 }
 
-function deriveTitle(fragment: Y.XmlFragment) {
+function deriveTitle(fragment: Y.XmlText) {
   try {
     const json = fragment.toJSON();
     if (!Array.isArray(json)) return undefined;

@@ -155,15 +155,15 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.2(@types/react@19.2.2))(@types/react@19.2.2)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      '@slate-yjs/core':
+        specifier: ^1.0.2
+        version: 1.0.2(slate@0.118.1)(yjs@13.6.27)
       '@slate-yjs/react':
         specifier: ^1.1.0
         version: 1.1.0(@slate-yjs/core@1.0.2(slate@0.118.1)(yjs@13.6.27))(react@19.2.0)(slate-react@0.117.4(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(slate-dom@0.118.1(slate@0.118.1))(slate@0.118.1))(slate@0.118.1)(yjs@13.6.27)
       '@udecode/cn':
         specifier: ^49.0.15
         version: 49.0.15(@types/react@19.2.2)(class-variance-authority@0.7.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(tailwind-merge@3.3.1)
-      '@udecode/plate-common':
-        specifier: ^42.0.0
-        version: 42.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@uploadthing/react':
         specifier: 7.3.3
         version: 7.3.3(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(sass@1.51.0))(react@19.2.0)(uploadthing@7.7.4(next@16.0.0(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(@playwright/test@1.56.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(sass@1.51.0))(tailwindcss@4.1.16))
@@ -257,6 +257,12 @@ importers:
       use-file-picker:
         specifier: 2.1.2
         version: 2.1.2(react@19.2.0)
+      y-protocols:
+        specifier: ^1.0.5
+        version: 1.0.6(yjs@13.6.27)
+      yjs:
+        specifier: ^13.6.27
+        version: 13.6.27
       zod:
         specifier: ^4.1.12
         version: 4.1.12
@@ -2360,13 +2366,6 @@ packages:
       react: '>=18.0.0'
       react-dom: '>=18.0.0'
       tailwind-merge: '>=2.2.0'
-
-  '@udecode/plate-common@42.0.0':
-    resolution: {integrity: sha512-Y/0Cpf/OtmyNwRx1dAfLPH23SskTbpVdaffX9rG+BTlQNJV9xZDaYt2n+dM3j4Q5Aqntf5cKO8kWGhISUQFYyw==}
-    deprecated: Package no longer supported, use @udecode/plate instead.
-    peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
 
   '@udecode/react-hotkeys@37.0.0':
     resolution: {integrity: sha512-3ZV5LiaTnKyhXwN6U0NE2cofNsNN2IPMkNCDntbSIIRLYmI+o6LRkDwAucSNh/BIdNXfvxscsR04RYyIwjGbJw==}
@@ -7561,11 +7560,6 @@ snapshots:
       tailwind-merge: 3.3.1
     transitivePeerDependencies:
       - '@types/react'
-
-  '@udecode/plate-common@42.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
-    dependencies:
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
 
   '@udecode/react-hotkeys@37.0.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
     dependencies:

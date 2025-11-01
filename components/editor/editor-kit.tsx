@@ -6,7 +6,7 @@ import type { AnyPluginConfig } from "platejs";
 import { usePlateEditor } from "platejs/react";
 
 import { useEditorSettings } from "@/components/editor/settings/editor-settings-provider";
-import type { MyElement, MyText, MyValue } from "@/types/plate-elements";
+import type { MyValue } from "@/types/plate-elements";
 
 export function useEditorKit(initialValue: MyValue) {
   const { buildPlugins } = useEditorSettings();
@@ -24,10 +24,7 @@ export function useEditorKit(initialValue: MyValue) {
     [plugins, initialValue],
   );
 
-  const editor = usePlateEditor<MyValue, MyElement, MyText>(
-    editorOptions,
-    [plugins, initialValue],
-  );
+  const editor = usePlateEditor(editorOptions, [plugins, initialValue]);
 
   return { editor, plugins };
 }

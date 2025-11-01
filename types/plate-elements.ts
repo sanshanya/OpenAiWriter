@@ -366,7 +366,7 @@ export type BaseText = TText & {
 export type MyText = BaseText;
 
 export type MyNode = MyElement | MyText;
-export type MyValue = MyNode[];
+export type MyValue = MyElement[];
 
 /** ===== 工具：块/行内判定 & 守卫 ===== */
 
@@ -459,10 +459,10 @@ export type NoUnknownKeysCheck = AssertTrue<
 >;
 
 export const isBlock = (key: ElementKey): key is BlockElementKey =>
-  BLOCK_ELEMENT_KEYS.has(key);
+  BLOCK_ELEMENT_KEYS.has(key as BlockElementKey);
 
 export const isInline = (key: ElementKey): key is InlineElementKey =>
-  INLINE_ELEMENT_KEYS.has(key);
+  INLINE_ELEMENT_KEYS.has(key as InlineElementKey);
 
 export const isLinkElement = (element: TElement): element is LinkElement =>
   (element as LinkElement).type === ELEMENTS.link;

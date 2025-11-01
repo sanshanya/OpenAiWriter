@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Plate } from "platejs/react";
 
+import { useEditorKit } from "@/components/editor/editor-kit";
 import { useYjsEditor } from "@/components/editor/use-yjs-editor";
 import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
 import { useDocuments } from "@/hooks/use-documents";
@@ -25,7 +26,8 @@ export function PlateEditor() {
     return getLegacyContentSnapshot(activeDocumentId);
   }, [activeDocumentId, getLegacyContentSnapshot, ready]);
 
-  const { editor, ydoc, whenSynced } = useYjsEditor({
+  // useYjsEditor 内部创建 editor
+  const { editor, ydoc, status } = useYjsEditor({
     docId: activeDocumentId ?? null,
     enabled: ready,
     getLegacyJson,
@@ -34,33 +36,8 @@ export function PlateEditor() {
   useEditorHotkeys(editor);
   useYDocMetaBridge(ready ? activeDocumentId : null, ydoc);
 
-  const [isSynced, setSynced] = React.useState(!ready);
-
-  React.useEffect(() => {
-    if (!ready) {
-      setSynced(false);
-      return;
-    }
-    setSynced(false);
-    let cancelled = false;
-    whenSynced
-      .finally(() => {
-        if (!cancelled) {
-          setSynced(true);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setSynced(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [activeDocumentId, ready, whenSynced]);
-
   const showLoading =
-    !ready || !editor || !ydoc || !isSynced || !activeDocumentId;
+    !ready || !editor || !ydoc || !status.synced || !activeDocumentId;
 
   if (showLoading) {
     return (

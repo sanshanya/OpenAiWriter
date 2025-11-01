@@ -94,8 +94,14 @@ export class IndexeddbPersistence {
     this.key = key;
     this.dbPromise = isBrowser ? openDatabase() : null;
 
-    this.updateHandler = () => {
+    this.updateHandler = (update: Uint8Array) => {
       if (this.destroyed || this.guard) return;
+      if (process.env.NODE_ENV !== "production") {
+        console.log('[IndexeddbPersistence] update event', {
+          key: this.key,
+          updateSize: update.length,
+        });
+      }
       void this.persist();
     };
 
@@ -130,7 +136,19 @@ export class IndexeddbPersistence {
       const db = this.dbInstance ?? (await this.dbPromise);
       this.dbInstance = db;
       const update = Y.encodeStateAsUpdate(this.doc);
+      
+      if (process.env.NODE_ENV !== "production") {
+        console.log('[IndexeddbPersistence] persisting', {
+          key: this.key,
+          updateSize: update.length,
+        });
+      }
+      
       await writeDocument(db, this.key, update);
+      
+      if (process.env.NODE_ENV !== "production") {
+        console.log('[IndexeddbPersistence] persisted successfully');
+      }
     } catch (error) {
       console.warn("[IndexeddbPersistence] persist failed", error);
     }

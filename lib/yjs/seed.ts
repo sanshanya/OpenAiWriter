@@ -1,37 +1,36 @@
 import * as Y from "yjs";
-import { createPlateEditor, type AnyPluginConfig } from "platejs";
-import { withTYjs, YjsEditor } from "@platejs/yjs";
 
 import type { MyValue } from "@/types/plate-elements";
-import { BasicNodesKit } from "@/components/editor/plugins";
 
+/**
+ * 将 legacy JSON 内容 seed 到空的 Y.Doc
+ *
+ * 使用 Yjs transact 直接写入
+ */
 export async function seedJsonIntoYDocIfEmpty(
-  fragment: Y.XmlFragment,
+  editor: any,
+  sharedRoot: Y.XmlText,
   legacy: MyValue,
-  plugins?: AnyPluginConfig[],
 ): Promise<boolean> {
-  if (fragment.length > 0 || !legacy || legacy.length === 0) {
+  if (!editor || sharedRoot.length > 0 || !legacy || legacy.length === 0) {
     return false;
   }
 
-  const doc = fragment.doc;
+  const doc = sharedRoot.doc;
   if (!doc) return false;
 
-  const editor = withTYjs(
-    createPlateEditor<MyValue>({
-      plugins: plugins && plugins.length > 0 ? plugins : BasicNodesKit,
-      value: [],
-    }),
-    fragment as unknown as Y.XmlText,
-    { autoConnect: false },
-  ) as YjsEditor<MyValue>;
+  try {
+    // 直接通过 editor.children 赋值，让 withYjs 同步到 Y.Doc
+    doc.transact(() => {
+      editor.children = legacy;
+      if (typeof editor.onChange === 'function') {
+        editor.onChange();
+      }
+    });
 
-  doc.transact(() => {
-    YjsEditor.connect(editor, fragment as unknown as Y.XmlText);
-    editor.children = legacy as unknown as typeof editor.children;
-    editor.onChange();
-    YjsEditor.disconnect(editor, fragment as unknown as Y.XmlText);
-  });
-
-  return true;
+    return true;
+  } catch (error) {
+    console.error('[seedJsonIntoYDocIfEmpty] Failed to seed', error);
+    return false;
+  }
 }
