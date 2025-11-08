@@ -111,8 +111,10 @@ flowchart LR
 
 * **互斥规则**：
 
-  * `streaming-text`：只发送 `token`（以及 `step/artifact/usage/final/error`），**不发送** `patch`；模式一经宣布不得切换。
-  * `atomic-patch`：整段生成在后端缓冲，最终只发送 **一次** `patch`；**不发送** `token`。
+  * `renderMode` 仅允许 `streaming-text` 与 `atomic-patch` 两种值。
+  * `streaming-text`：只发送 `token`（以及 `step/artifact/usage/final/error`），**不发送** `patch`；模式一经宣布不得切换。首 token 抵达前，前端不得删除原有选区（“首 token 再落刀”）。
+  * `atomic-patch`：整段生成在后端缓冲，最终只发送 **一次** `patch`；**不发送** `token`。P0 强制关闭“流式 diff”，`EXPERIMENT_SUGGESTION_STREAM=false` 为兜底，当渲染/并发异常时立即回退到一次性 patch。
+  * 为了可观测性，`step` 事件允许 `phase:"progress"`（例如 `progress:"calling_model"` / `progress:"sending_patch"`）；长时间静默时至少每 20s 推送一次 `:\n\n` 心跳帧。
 * **patch 目标与粒度**：
 
   * 目标以请求体回显的 `selectionRef` 为锚点，**不可依赖“当前选区”**；
@@ -157,6 +159,7 @@ flowchart LR
 5. **只读锁（建议）**：生成期间将编辑器临时置 **只读**（或阻断 `beforeinput`），避免用户输入污染撤销批次。若允许编辑，需将用户输入独立成**并行撤销事务**，复杂度高，v1 不推荐。
 6. **可见性节流与缓冲**：页面不可见时，将 `token` 事件暂存于缓冲队列；恢复可见后**合并插入**（一次 `Transforms.insertText`）以提升流畅度。
 7. **错误与边界**：断网/超时/取消均走统一收尾；`TextDecoder('utf-8',{fatal:false})` 处理跨帧多字节字符。
+8. **SSE 解析器**：`ReadableStreamDefaultReader` + `TextDecoder` + `\n\n` 分帧；每帧仅解析 `data:` 行并包裹 `JSON.parse`，单帧失败时记录日志但不中断。流关闭且未收到 `final` → 注入 `error:{code:STREAM_EOF}` 以驱动 UI 收尾。
 
 ---
 

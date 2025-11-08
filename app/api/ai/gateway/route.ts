@@ -32,7 +32,9 @@ export async function POST(req: NextRequest) {
 
   try {
     const normalized = await normalizeGatewayRequest(payload);
-    const channel = createSseChannel({ retry: SSE_DEFAULT_RETRY_MS });
+    const channel = createSseChannel({
+      retry: SSE_DEFAULT_RETRY_MS,
+    });
 
     void runGatewayFlow({
       normalized,
@@ -40,6 +42,7 @@ export async function POST(req: NextRequest) {
       channel,
     }).catch((error) => {
       console.error("[ai-gateway] flow execution failed:", error);
+      void channel.abort(error);
     });
 
     return new Response(channel.stream, {

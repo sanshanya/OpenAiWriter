@@ -1,86 +1,18 @@
-import type { SelectionRef } from "@/lib/ai/gateway/schema";
-
-export type StepEvent = {
-  type: "step";
-  phase: "start" | "finish";
-  name: string;
-  runId: string;
-  flowId: string;
-  renderMode?: "streaming-text" | "atomic-patch";
-  docVersion: number;
-  contextHash?: string;
-  contextChars?: number;
-  softLimitExceeded?: boolean;
-};
-
-export type TokenEvent = {
-  type: "token";
-  text: string;
-  step: string;
-  runId: string;
-  flowId: string;
-  docVersion: number;
-};
-
-export type PatchEvent = {
-  type: "patch";
-  step: string;
-  runId: string;
-  flowId: string;
-  docVersion: number;
-  selectionRef?: SelectionRef;
-  patch: {
-    type: "replace_text";
-    text: string;
-  };
-};
-
-export type UsageEvent = {
-  type: "usage";
-  runId: string;
-  flowId: string;
-  docVersion: number;
-  inputTokens: number;
-  outputTokens: number;
-  totalTokens: number;
-  costUsd?: number;
-};
-
-export type FinalEvent = {
-  type: "final";
-  runId: string;
-  flowId: string;
-  docVersion: number;
-  status: "succeeded" | "failed" | "cancelled";
-  reason?: string;
-};
-
-export type ErrorEvent = {
-  type: "error";
-  runId: string;
-  flowId: string;
-  docVersion: number;
-  code: string;
-  message: string;
-  fatal?: boolean;
-};
-
-export type GatewayEvent =
-  | StepEvent
-  | TokenEvent
-  | PatchEvent
-  | UsageEvent
-  | FinalEvent
-  | ErrorEvent;
+import type { GatewayEvent } from "@/lib/ai/gateway/events";
 
 const formatSseFrame = (event: GatewayEvent) =>
   `event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`;
 
 const textEncoder = new TextEncoder();
 
-export const createSseChannel = (options?: { retry?: number }) => {
+export const createSseChannel = (options?: {
+  retry?: number;
+  heartbeatMs?: number;
+}) => {
   const stream = new TransformStream<Uint8Array, Uint8Array>();
   const writer = stream.writable.getWriter();
+  const heartbeatInterval = Math.max(0, options?.heartbeatMs ?? 20000);
+  let heartbeatTimer: NodeJS.Timeout | null = null;
 
   const writeChunk = (content: string) =>
     writer.write(textEncoder.encode(content));
@@ -89,10 +21,29 @@ export const createSseChannel = (options?: { retry?: number }) => {
     void writeChunk(`retry: ${options.retry}\n\n`);
   }
 
+  if (heartbeatInterval > 0) {
+    heartbeatTimer = setInterval(() => {
+      void writeChunk(":\n\n");
+    }, heartbeatInterval);
+  }
+
+  const cleanup = () => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  };
+
   return {
     stream: stream.readable,
     send: (event: GatewayEvent) => writeChunk(formatSseFrame(event)),
-    close: () => writer.close(),
-    abort: (reason?: unknown) => writer.abort(reason).catch(() => undefined),
+    close: () => {
+      cleanup();
+      return writer.close();
+    },
+    abort: (reason?: unknown) => {
+      cleanup();
+      return writer.abort(reason).catch(() => undefined);
+    },
   };
 };

@@ -36,7 +36,10 @@ describe("normalizeGatewayRequest", () => {
 
 describe("createSseChannel", () => {
   it("encodes retry hint and events as SSE frames", async () => {
-    const channel = createSseChannel({ retry: SSE_DEFAULT_RETRY_MS });
+    const channel = createSseChannel({
+      retry: SSE_DEFAULT_RETRY_MS,
+      heartbeatMs: 0,
+    });
     const reader = channel.stream.getReader();
     const decoder = new TextDecoder();
 

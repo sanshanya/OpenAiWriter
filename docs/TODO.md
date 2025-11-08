@@ -102,6 +102,7 @@ This stage transitions from a separate AI panel to a deeply integrated, contextu
 - [ ] 将 `/api/ai/*` 核心逻辑迁移到独立服务（首版可用 Rust + SQLite/LibSQL），统一提示词、调用与日志。
 - [ ] 前端仅保留 UI 与流式消费逻辑，SDK 对接后端的 SSE/WebSocket。
 - [ ] 建立基础监控：提示词审计、响应时间、错误率。
+- [x] 建立 AI Gateway（SSE 帧包装 + renderMode 互斥 + 进度/心跳 + runId 并发守卫）作为 P0 真源，前后端统一消费 `{type:'step'|'token'|'patch'|'final'|'error'}`。
 
 ### 6.2 权威存储后端化
 

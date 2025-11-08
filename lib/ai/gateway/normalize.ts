@@ -54,10 +54,6 @@ export const normalizeGatewayRequest = async (
 
   const contextChars = countGraphemes(contextText);
 
-  if (contextChars > parsed.data.doc.context.text.length) {
-    throw validationError("Context length calculation mismatch.");
-  }
-
   const flow = (() => {
     try {
       return resolveFlowDefinition(request.intent, request.flow);
