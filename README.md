@@ -30,7 +30,7 @@ pnpm dev
 - `components/ui/shadcn/*`：原生 shadcn primitives（Sidebar、Sheet、Resizable、ScrollArea…），可视为可复制可覆写的“设计系统基线”。若需同步 upstream，只需在此目录内对齐。
 - `components/ui/editor/*`：依赖 Plate/业务语义的控件（toolbar、node、AI 面板等），可自由修改，不受 shadcn 升级影响。
 
-首页布局使用 shadcn `SidebarProvider` 构建三段式 IDE 结构：左侧为文档树（默认按名称自然排序并持久化在 `localStorage`），右侧为 AI 工作台，二者的展开状态通过独立 Cookie (`left_sidebar_state` / `right_sidebar_state`) 记忆，避免相互干扰，中间区域保留 Plate 编辑器。
+首页布局使用 shadcn `SidebarProvider` 构建三段式 IDE 结构：左侧为文档树（默认按名称自然排序并持久化在 `localStorage`），右侧为 AI 工作台，二者的展开状态通过独立 Cookie (`left_sidebar_state` / `right_sidebar_state`) 记忆，避免相互干扰，中间区域保留 Plate 编辑器。侧栏本身不再绑定快捷键，如需键位可在编辑器层统一注册。
 
 ## AI 模块规划
 
