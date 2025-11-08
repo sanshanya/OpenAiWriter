@@ -128,3 +128,23 @@
     @apply bg-background text-foreground;
   }
 }
+
+[data-slate-ai-preview-delete] {
+  color: #b91c1c;
+  text-decoration-line: line-through;
+  text-decoration-thickness: 1.5px;
+  text-decoration-color: currentColor;
+}
+
+[data-slate-ai-preview-insert-before] {
+  position: relative;
+}
+
+[data-slate-ai-preview-insert-before]::before {
+  color: #15803d;
+  content: attr(data-slate-ai-preview-insert-text);
+  font-style: italic;
+  opacity: 0.9;
+  pointer-events: none;
+  white-space: pre-wrap;
+}

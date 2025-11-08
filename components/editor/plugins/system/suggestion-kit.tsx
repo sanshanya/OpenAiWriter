@@ -13,6 +13,7 @@ import {
   SuggestionLeaf,
   SuggestionLineBreak,
 } from "@/components/ui/editor/suggestion-node";
+import { AiPreviewKit } from "@/components/editor/plugins/ai/ai-preview-kit";
 
 import { discussionPlugin } from "./discussion-kit";
 
@@ -87,4 +88,4 @@ export const suggestionPlugin = toTPlatePlugin<SuggestionConfig>(
   } as never,
 });
 
-export const SuggestionKit = [suggestionPlugin];
+export const SuggestionKit = [...AiPreviewKit, suggestionPlugin];

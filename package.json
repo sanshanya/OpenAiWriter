@@ -68,6 +68,7 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dedent": "1.0.0",
+    "diff-match-patch": "^1.0.5",
     "html2canvas-pro": "^1.5.12",
     "katex": "^0.16.25",
     "lodash": "^4.17.21",
@@ -100,6 +101,7 @@
   "devDependencies": {
     "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4",
+    "@types/diff-match-patch": "^1.0.36",
     "@types/lodash": "^4.17.20",
     "@types/node": "^20",
     "@types/react": "^19",
