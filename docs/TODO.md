@@ -17,7 +17,7 @@ Building on the MVP, this stage enhanced the editor's flexibility and user exper
 
 ## Stage 2.5: Sidebar & Layout Modernization
 
-- **双侧栏基线（shadcn Sidebar）**：左右侧栏分别由单独的 `SidebarProvider` 驱动，使用 `left_sidebar_state` / `right_sidebar_state` Cookie 记住展开状态，快捷键默认 `⌘/Ctrl + B`、`⌘/Ctrl + .`，互不干扰。
+- **双侧栏基线（shadcn Sidebar）**：左右侧栏分别由单独的 `SidebarProvider` 驱动，使用 `left_sidebar_state` / `right_sidebar_state` Cookie 记住展开状态，互不干扰。
 - **三段式 IDE 布局**：左栏为文档树、中间为 Plate 编辑器、右栏为 AI 工作台，均基于 shadcn primitives（Sidebar / ScrollArea），移动端自动切换为 Drawer。
 - **文档列表自然排序**：通过 `hooks/files-sort.ts` + `hooks/usePersistentSort.ts` 复用的 Intl.Collator 方案，默认按名称（数字感知、大小写忽略）排序，并持久化到 `localStorage:filePanel.sort`，避免 AI 改动导致顺序跳动。
 - **UI 分层调整**：`components/ui/editor/*` 收纳 Plate 相关控件，`components/ui/shadcn/*` 保留上游 shadcn 组件，方便未来执行 CLI 同步或定制。
