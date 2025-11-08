@@ -2,23 +2,25 @@
 
 import { AIChatPlugin } from "@platejs/ai/react";
 import { BlockSelectionPlugin } from "@platejs/selection/react";
-import { getPluginTypes, isHotkey, KEYS } from "platejs";
+import { getPluginTypes, isHotkey, KEYS, type TElement } from "platejs";
 import type { PlateElementProps } from "platejs/react";
+import type { SlateEditor } from "platejs";
 
 import { BlockSelection } from "@/components/ui/editor/block-selection";
 
 export const BlockSelectionKit = [
-  BlockSelectionPlugin.configure(({ editor }) => ({
-    options: {
-      enableContextMenu: true,
-      isSelectable: (element) => {
+  BlockSelectionPlugin.configure(({ editor }) =>
+    ({
+      options: {
+        enableContextMenu: true,
+      isSelectable: (element: TElement) => {
         return !getPluginTypes(editor, [
           KEYS.column,
           KEYS.codeLine,
           KEYS.td,
         ]).includes(element.type);
       },
-      onKeyDownSelecting: (editor, e) => {
+      onKeyDownSelecting: (editor: SlateEditor, e: KeyboardEvent) => {
         if (isHotkey("mod+j")(e)) {
           editor.getApi(AIChatPlugin).aiChat.show();
         }
@@ -32,5 +34,6 @@ export const BlockSelectionKit = [
         return <BlockSelection {...props} />;
       },
     },
-  })),
+    }) as never,
+  ),
 ];

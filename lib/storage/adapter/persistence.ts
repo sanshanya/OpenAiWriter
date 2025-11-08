@@ -1,15 +1,15 @@
 // lib/storage/adapter/persistence.ts
 "use client";
 
-import type { Value } from "platejs";
 import { STORAGE_CONFIG } from "@/lib/storage/constants";
 import type { DocumentMeta } from "@/types/storage";
 import { idbPutDoc, idbPutMany, markIndexedDBSyncedNow } from "@/lib/storage/local/idb";
 import { StorageLogger } from "@/lib/storage/logger";
+import type { MyValue } from "@/types/plate-elements";
 
 type PersistTask = {
   meta: DocumentMeta;
-  content: Value;
+  content: MyValue;
 };
 
 const pending = new Map<string, PersistTask>();
@@ -83,7 +83,7 @@ function scheduleFlushOnIdle() {
   }
 }
 
-export function persistDocChange(meta: DocumentMeta, content: Value) {
+export function persistDocChange(meta: DocumentMeta, content: MyValue) {
   pending.set(meta.id, { meta, content });
   pendingVersions.set(meta.id, meta.contentVersion);
   scheduleFlushOnIdle();

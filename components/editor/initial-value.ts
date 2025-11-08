@@ -1,6 +1,7 @@
 "use client";
 
 import { normalizeNodeId } from "platejs";
+import type { Value } from "platejs";
 
 import {
   ELEMENTS,
@@ -8,7 +9,7 @@ import {
   type MyValue,
 } from "@/types/plate-elements";
 
-const normalizeValue = <T extends unknown[]>(value: T) =>
+const normalizeValue = <T extends Value>(value: T) =>
   normalizeNodeId(value) as T;
 
 const baseInitialValue: MyValue = [

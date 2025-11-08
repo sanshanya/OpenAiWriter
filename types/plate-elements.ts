@@ -364,9 +364,7 @@ export type BaseText = TText & {
 };
 
 export type MyText = BaseText;
-
-export type MyNode = MyElement | MyText;
-export type MyValue = MyNode[];
+export type MyValue = MyElement[];
 
 /** ===== 工具：块/行内判定 & 守卫 ===== */
 
@@ -405,7 +403,7 @@ export type InlineElementKey =
   | typeof ELEMENTS.inlineEquation
   | typeof ELEMENTS.date;
 
-const BLOCK_ELEMENT_KEYS = new Set<BlockElementKey>([
+const BLOCK_ELEMENT_KEY_LIST = [
   ELEMENTS.paragraph,
   ELEMENTS.h1,
   ELEMENTS.h2,
@@ -434,13 +432,17 @@ const BLOCK_ELEMENT_KEYS = new Set<BlockElementKey>([
   ELEMENTS.equation,
   ELEMENTS.excalidraw,
   ELEMENTS.aiChat,
-]);
+] as const satisfies readonly BlockElementKey[];
 
-const INLINE_ELEMENT_KEYS = new Set<InlineElementKey>([
+const BLOCK_ELEMENT_KEYS = new Set<ElementKey>(BLOCK_ELEMENT_KEY_LIST);
+
+const INLINE_ELEMENT_KEY_LIST = [
   ELEMENTS.link,
   ELEMENTS.inlineEquation,
   ELEMENTS.date,
-]);
+] as const satisfies readonly InlineElementKey[];
+
+const INLINE_ELEMENT_KEYS = new Set<ElementKey>(INLINE_ELEMENT_KEY_LIST);
 
 type AssertTrue<T extends true> = T;
 

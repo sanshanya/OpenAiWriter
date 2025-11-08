@@ -43,8 +43,6 @@ import {
 } from "@/components/editor/transforms";
 
 import { ToolbarButton, ToolbarMenuGroup } from "./toolbar";
-import type { ElementKey } from "@/types/plate-elements";
-
 type Group = {
   group: string;
   items: Item[];
@@ -52,11 +50,8 @@ type Group = {
 
 interface Item {
   icon: React.ReactNode;
-  value: ElementKey | typeof ACTION_THREE_COLUMNS;
-  onSelect: (
-    editor: PlateEditor,
-    value: ElementKey | typeof ACTION_THREE_COLUMNS,
-  ) => void;
+  value: string;
+  onSelect: (editor: PlateEditor, value: string) => void;
   focusEditor?: boolean;
   label?: string;
 }

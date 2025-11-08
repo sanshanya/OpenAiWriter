@@ -326,8 +326,8 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
         old.deletedAt !== doc.deletedAt ||
         old.title !== doc.title;
       if (changed) {
-        const { content, ...meta } = doc;
-        Storage.persistDocChange(meta, content);
+        const { content } = doc;
+        Storage.persistDocChange(toMeta(doc), content);
       }
     }
 
@@ -359,7 +359,7 @@ export function DocumentsProvider({ children }: { children: React.ReactNode }) {
 
   // 关键：携带 docId，晚到的 onChange 也只会落在“自己的文档”上
   const updateDocumentContent = React.useCallback(
-    (docId: string, value: Value) => {
+    (docId: string, value: MyValue) => {
       dispatch({
         type: "UPDATE_CONTENT",
         id: docId,

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { type UseChatHelpers, useChat as useBaseChat } from "@ai-sdk/react";
+import { useChat as useBaseChat } from "@ai-sdk/react";
 import { AIChatPlugin, aiCommentToRange } from "@platejs/ai/react";
 import { getCommentKey, getTransientCommentKey } from "@platejs/comment";
 import { deserializeMd } from "@platejs/markdown";
@@ -17,7 +17,7 @@ import { ELEMENTS } from "@/types/plate-elements";
 
 export type ToolName = "comment" | "edit" | "generate";
 
-export type TComment = {
+export type AICommentStreamPayload = {
   comment: {
     blockId: string;
     comment: string;
@@ -28,10 +28,8 @@ export type TComment = {
 
 export type MessageDataPart = {
   toolName: ToolName;
-  comment?: TComment;
+  comment?: AICommentStreamPayload;
 };
-
-export type Chat = UseChatHelpers<ChatMessage>;
 
 export type ChatMessage = UIMessage<Record<string, never>, MessageDataPart>;
 
@@ -142,7 +140,7 @@ export const useChat = () => {
   React.useEffect(() => {
     // Plate 的 AI 插件目前仍以宽泛类型存取 Chat helpers（参考官方模板），
     // 直接传递会出现泛型不完全收敛的类型冲突，这里保持一次性断言。
-    editor.setOption(AIChatPlugin, "chat", baseChat as unknown as Chat);
+    editor.setOption(AIChatPlugin, "chat", baseChat as never);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [baseChat.status, baseChat.messages, baseChat.error]);
 

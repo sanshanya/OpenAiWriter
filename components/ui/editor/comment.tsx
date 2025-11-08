@@ -156,7 +156,7 @@ export function Comment(props: {
   const onSave = () => {
     void updateComment({
       id: comment.id,
-      contentRich: commentEditor.children,
+      contentRich: commentEditor.children as MyValue,
       discussionId: comment.discussionId,
       isEdited: true,
     });
@@ -562,7 +562,7 @@ export function CommentCreateForm({
       <div className="relative flex grow gap-2">
         <Plate
           onChange={({ value }) => {
-            setCommentValue(value);
+            setCommentValue(value as MyValue);
           }}
           editor={commentEditor}
         >

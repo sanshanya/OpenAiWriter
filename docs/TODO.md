@@ -121,3 +121,33 @@ This stage transitions from a separate AI panel to a deeply integrated, contextu
 
 - [ ] 解决 Markdown / HTML 混合粘贴失败问题。
 - [ ] 导入导出能力（Markdown/HTML/多媒体）与服务化阶段同步推进。
+
+建议（可直接落地的小改动）
+
+多余样式条件
+文档条目时间的类名分支两边相同：
+isActive ? "text-neutral-400" : "text-neutral-400"，可以直接简化为常量类，减少无意义计算。
+
+“新建”按钮的可用性
+新建 按钮在 !activeDocumentId 时被 disabled。这会导致“首启无文档时无法新建”的反直觉体验。更合理的是：
+
+始终可点；
+
+或在 documents.length === 0 的空态区块里也给一个显眼的“新建”入口（你已有空态提示文案，可顺手加按钮）。
+
+cookie 常量化与兜底
+既然 server 组件解析 left_sidebar_state / right_sidebar_state，建议把两者抽成共享常量（例如 lib/ui-persistence.ts），并在解析处做兜底：未知值一律回退到 collapsed=false/true 的明确布尔语义，避免未来重构时服务器解析与客户端写入不一致（README 已明确用这两个 cookie）。
+
+明确动态渲染语义
+读 next/headers 的 cookies() 会让页面成为动态路由，但为了防止误判缓存，建议在 app/page.tsx 顶部显式：
+
+export const dynamic = "force-dynamic";
+
+
+这能在 Next 未来版本里少踩边缘行为（基于本次 commit 描述：server 读 cookie 决定 defaultOpen）。
+
+名称排序的“自然排序”
+目前按名称排序已满足主要诉求，但为了更贴合中文与数字混排文件名，建议在 compareByName 内使用 Intl.Collator("zh-CN", { numeric: true, sensitivity: "base" }) 做比较；对英文同理用 undefined locale 兜底。这会让 文档2 自然排在 文档10 前（引用处见 compareByName 的调用）。
+
+可访问性再加一分
+删除按钮只有 title="删除文档"，可以再加 aria-label="删除文档"，让读屏更稳定（尤其是 SVG 图标按钮）。

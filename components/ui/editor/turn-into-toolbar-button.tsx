@@ -37,15 +37,13 @@ import {
   getBlockType,
   setBlockType,
 } from "@/components/editor/transforms";
-import type { ElementKey } from "@/types/plate-elements";
-
 import { ToolbarButton, ToolbarMenuGroup } from "./toolbar";
 
 type TurnIntoItem = {
   icon: React.ReactNode;
   keywords?: string[];
   label: string;
-  value: ElementKey | typeof ACTION_THREE_COLUMNS;
+  value: string;
 };
 
 export const turnIntoItems: TurnIntoItem[] = [

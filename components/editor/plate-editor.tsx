@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { Plate } from "platejs/react";
+import type { PlateEditor as PlateEditorBase } from "platejs/react";
+import type { Value } from "platejs";
 
 import { useEditorKit } from "@/components/editor/editor-kit";
 import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
@@ -30,19 +32,19 @@ const EditorInstance = React.memo(
     );
 
     const { editor } = useEditorKit(initialValue);
-    useEditorHotkeys(editor);
+    useEditorHotkeys(editor as PlateEditorBase);
 
     const handleChange = React.useCallback(
-      ({ value }: { value: MyValue }) => {
-        onContentChange(doc.id, value);
+      ({ value }: { value: Value }) => {
+        onContentChange(doc.id, value as MyValue);
       },
       [doc.id, onContentChange],
     );
 
     return (
-      <Plate<MyValue>
+      <Plate
         key={`${doc.id}:${contentVersion}`}
-        editor={editor}
+        editor={editor as PlateEditorBase}
         onChange={handleChange}
       >
         <EditorContainer>
