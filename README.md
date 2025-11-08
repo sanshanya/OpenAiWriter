@@ -23,6 +23,15 @@ pnpm dev
 - docs 文件夹内放有本项目开发目录
 - 围绕其中 `TODO.md` 中的阶段任务推进，阶段完成后进行复盘与下一步确认。
 
+## UI 体系分层与布局
+
+为方便后续升级 shadcn 版本，同时保持 Plate 定制 UI 的可控性，UI 组件被拆分为两层：
+
+- `components/ui/shadcn/*`：原生 shadcn primitives（Sidebar、Sheet、Resizable、ScrollArea…），可视为可复制可覆写的“设计系统基线”。若需同步 upstream，只需在此目录内对齐。
+- `components/ui/editor/*`：依赖 Plate/业务语义的控件（toolbar、node、AI 面板等），可自由修改，不受 shadcn 升级影响。
+
+首页布局使用 shadcn `SidebarProvider` 构建三段式 IDE 结构：左侧为文档树（默认按名称自然排序并持久化在 `localStorage`），右侧为 AI 工作台，二者的展开状态通过独立 Cookie (`left_sidebar_state` / `right_sidebar_state`) 记忆，避免相互干扰，中间区域保留 Plate 编辑器。
+
 ## AI 模块规划
 
 | 模块    | 作用                                                     | 默认路由                  |

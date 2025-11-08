@@ -9,8 +9,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/editor/dialog";
+import { Button } from "@/components/ui/editor/button";
 import type { DocumentRecord } from "@/types/storage";
 
 type RecoveryMeta = Pick<DocumentRecord, "id" | "title" | "updatedAt" | "version">;

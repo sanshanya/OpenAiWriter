@@ -15,6 +15,13 @@ Building on the MVP, this stage enhanced the editor's flexibility and user exper
 - **AI UX Refinement:** Improved the AI interaction loop with loading indicators, cancellation, retry logic, and result copying to provide clear user feedback.
 - **Content Persistence:** Implemented local storage to save and restore editor content automatically, ensuring user work is not lost between sessions. A manual QA checklist was created to validate core interactions.
 
+## Stage 2.5: Sidebar & Layout Modernization
+
+- **双侧栏基线（shadcn Sidebar）**：左右侧栏分别由单独的 `SidebarProvider` 驱动，使用 `left_sidebar_state` / `right_sidebar_state` Cookie 记住展开状态，快捷键默认 `⌘/Ctrl + B`、`⌘/Ctrl + .`，互不干扰。
+- **三段式 IDE 布局**：左栏为文档树、中间为 Plate 编辑器、右栏为 AI 工作台，均基于 shadcn primitives（Sidebar / ScrollArea），移动端自动切换为 Drawer。
+- **文档列表自然排序**：通过 `hooks/files-sort.ts` + `hooks/usePersistentSort.ts` 复用的 Intl.Collator 方案，默认按名称（数字感知、大小写忽略）排序，并持久化到 `localStorage:filePanel.sort`，避免 AI 改动导致顺序跳动。
+- **UI 分层调整**：`components/ui/editor/*` 收纳 Plate 相关控件，`components/ui/shadcn/*` 保留上游 shadcn 组件，方便未来执行 CLI 同步或定制。
+
 ---
 
 ## Stage 3: WYSIWYG Markdown Integration
@@ -70,9 +77,9 @@ This stage transitions from a separate AI panel to a deeply integrated, contextu
 - [X] **`hooks/use-editor-hotkeys.ts`**：已抽离补全快捷键绑定，便于后续扩展。
 - [X] **`plate-editor.tsx` 精简**：通过 DocumentsProvider + Hooks 收敛持久化与快捷键逻辑，仅保留粘贴处理与渲染。
 
-### 类型集中管理（新增）
+### 类型集中管理（已完成）
 
-- [ ] `types/plate-elements.ts`：整理当前项目启用插件的 Plate 节点/文本类型，作为类型真源，新增/裁剪插件时同步维护。
+- [x] `types/plate-elements.ts`：集中维护启用插件的元素/文本类型、插件→元素映射与类型守卫，作为“单一真源”。
 
 ---
 

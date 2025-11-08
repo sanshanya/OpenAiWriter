@@ -2,8 +2,8 @@
 
 import { LinkPlugin } from "@platejs/link/react";
 
-import { LinkElement } from "@/components/ui/link-node";
-import { LinkFloatingToolbar } from "@/components/ui/link-toolbar";
+import { LinkElement } from "@/components/ui/editor/link-node";
+import { LinkFloatingToolbar } from "@/components/ui/editor/link-toolbar";
 import { sanitizeHref } from "@/lib/editor/sanitize";
 
 const toHref = (value: string) => sanitizeHref(value) ?? undefined;

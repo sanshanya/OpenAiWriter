@@ -5,7 +5,7 @@ import { Plate } from "platejs/react";
 
 import { useEditorKit } from "@/components/editor/editor-kit";
 import { useEditorHotkeys } from "@/hooks/use-editor-hotkeys";
-import { Editor, EditorContainer } from "@/components/ui/editor";
+import { Editor, EditorContainer } from "@/components/ui/editor/editor";
 import { useDocuments } from "@/hooks/use-documents";
 import type { MyValue } from "@/types/plate-elements";
 import { cloneValue, type DocumentRecord } from "@/types/storage";

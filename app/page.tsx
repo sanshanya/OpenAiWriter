@@ -10,64 +10,125 @@ import {
   useDocuments,
 } from "@/hooks/use-documents";
 import { TrashDrawer } from "@/components/storage/trash-drawer";
+import { usePersistentSort } from "@/hooks/usePersistentSort";
+import {
+  compareByMtime,
+  compareByName,
+  type SortPref,
+} from "@/hooks/files-sort";
+import { ScrollArea } from "@/components/ui/shadcn/scroll-area";
+import {
+  Sidebar as LeftSidebar,
+  SidebarContent as LeftSidebarContent,
+  SidebarInset as LeftSidebarInset,
+  SidebarProvider as LeftSidebarProvider,
+  SidebarTrigger as LeftSidebarTrigger,
+} from "@/components/ui/shadcn/sidebar";
+import {
+  Sidebar as RightSidebar,
+  SidebarContent as RightSidebarContent,
+  SidebarInset as RightSidebarInset,
+  SidebarProvider as RightSidebarProvider,
+  SidebarTrigger as RightSidebarTrigger,
+} from "@/components/ui/shadcn/sidebar-right";
+import type { DocumentMeta } from "@/types/storage";
 
 export default function Page() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [trashOpen, setTrashOpen] = React.useState(false);
 
+  const leftSidebarStyle = React.useMemo(
+    () =>
+      ({
+        "--sidebar-width": "clamp(200px,14vw,260px)",
+        "--sidebar-width-icon": "3.25rem",
+      }) as React.CSSProperties,
+    []
+  );
+  const rightSidebarStyle = React.useMemo(
+    () =>
+      ({
+        "--sidebar-width": "clamp(220px,15vw,320px)",
+      }) as React.CSSProperties,
+    []
+  );
+
   return (
     <DocumentsProvider>
       <EditorSettingsProvider>
-        <div className="grid h-dvh grid-rows-[56px_1fr] bg-neutral-50 text-neutral-900">
-        <header className="sticky top-0 z-30 border-b border-neutral-200 bg-neutral-50/80 backdrop-blur">
-          <div className="flex h-14 w-full items-center gap-3 px-4">
-            <div className="text-[15px] font-semibold tracking-tight">
-              AI Writer 工作台
-            </div>
-            <div className="ml-auto flex items-center gap-2" />
-          </div>
-        </header>
-
-        <div className="grid w-full grid-cols-1 md:[grid-template-columns:var(--left)_minmax(0,1fr)_var(--right)] md:px-0 md:[--left:clamp(180px,12vw,220px)] md:[--right:clamp(200px,12vw,240px)]">
-          <aside className="hidden md:block">
-            <div className="sticky top-[56px] h-[calc(100dvh-56px)] border-r border-neutral-200">
-              <div className="relative h-full">
-                <DocumentSidebar onOpenSettings={() => setSettingsOpen(true)} onOpenTrash={() => setTrashOpen(true)} />
-              </div>
-            </div>
-          </aside>
-
-          <main className="min-w-0">
-            <div className="mx-auto w-full px-8 py-8 md:w-[clamp(1000px,calc(100vw-var(--left)-var(--right)-64px),1760px)]">
-              <PlateEditor />
-            </div>
-          </main>
-
-          <aside className="hidden md:block">
-            <div className="sticky top-[56px] h-[calc(100dvh-56px)] border-l border-neutral-200 bg-white">
-              <AIPanel />
-            </div>
-          </aside>
-        </div>
-        </div>
-
-        {settingsOpen ? (
-          <div
-            className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/40 px-4 py-6 backdrop-blur-sm"
-            onClick={() => setSettingsOpen(false)}
-          >
-            <div
-              className="max-h-[80vh] w-[min(420px,90vw)] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl"
-              onClick={(event) => event.stopPropagation()}
+        <LeftSidebarProvider defaultOpen style={leftSidebarStyle}>
+          <div className="flex h-dvh w-full bg-neutral-50 text-neutral-900">
+            <LeftSidebar
+              collapsible="offcanvas"
+              side="left"
+              className="border-r border-neutral-200"
             >
-              <div className="max-h-[80vh] overflow-y-auto p-5">
-                <SettingsPanel onClose={() => setSettingsOpen(false)} />
+              <LeftSidebarContent className="h-full px-1 py-2">
+                <ScrollArea className="h-full pr-3">
+                  <DocumentSidebar
+                    onOpenSettings={() => setSettingsOpen(true)}
+                    onOpenTrash={() => setTrashOpen(true)}
+                  />
+                </ScrollArea>
+              </LeftSidebarContent>
+            </LeftSidebar>
+
+            <LeftSidebarInset className="flex h-full flex-1 flex-col bg-neutral-50">
+              <RightSidebarProvider defaultOpen style={rightSidebarStyle}>
+                <div className="flex h-full flex-1">
+                  <RightSidebarInset className="flex flex-1 flex-col overflow-hidden">
+                    <header className="sticky top-0 z-10 border-b border-neutral-200 bg-neutral-50/80 backdrop-blur">
+                      <div className="flex h-14 w-full items-center gap-3 px-4">
+                        <LeftSidebarTrigger className="size-8" />
+                        <div className="text-[15px] font-semibold tracking-tight">
+                          AI Writer 工作台
+                        </div>
+                        <div className="ml-auto flex items-center gap-2">
+                          <RightSidebarTrigger className="size-8" />
+                        </div>
+                      </div>
+                    </header>
+                    <main className="flex-1 overflow-auto">
+                      <div className="mx-auto w-full px-8 py-8 md:w-[min(1400px,calc(100vw-320px))]">
+                        <PlateEditor />
+                      </div>
+                    </main>
+                  </RightSidebarInset>
+                  <RightSidebar
+                    side="right"
+                    variant="inset"
+                    collapsible="offcanvas"
+                    className="border-l border-neutral-200"
+                  >
+                    <RightSidebarContent className="h-full p-0">
+                      <ScrollArea className="h-full px-3 py-4">
+                        <AIPanel />
+                      </ScrollArea>
+                    </RightSidebarContent>
+                  </RightSidebar>
+                </div>
+              </RightSidebarProvider>
+            </LeftSidebarInset>
+          </div>
+
+          {settingsOpen ? (
+            <div
+              className="fixed inset-0 z-40 flex items-center justify-center bg-neutral-900/40 px-4 py-6 backdrop-blur-sm"
+              onClick={() => setSettingsOpen(false)}
+            >
+              <div
+                className="max-h-[80vh] w-[min(420px,90vw)] overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="max-h-[80vh] overflow-y-auto p-5">
+                  <SettingsPanel onClose={() => setSettingsOpen(false)} />
+                </div>
               </div>
             </div>
-          </div>
-        ) : null}
+          ) : null}
 
-        <TrashDrawer open={trashOpen} onOpenChange={setTrashOpen} />
+          <TrashDrawer open={trashOpen} onOpenChange={setTrashOpen} />
+        </LeftSidebarProvider>
       </EditorSettingsProvider>
     </DocumentsProvider>
   );
@@ -87,20 +148,67 @@ function DocumentSidebar({
     createDocument,
     deleteDocument,
   } = useDocuments();
+  const [sortPref, setSortPref] = usePersistentSort({
+    by: "name",
+    order: "asc",
+  });
+  const sortSelectValue = `${sortPref.by}:${sortPref.order}`;
+  const sortedDocuments = React.useMemo(() => {
+    const comparator =
+      sortPref.by === "name"
+        ? (a: DocumentMeta, b: DocumentMeta) =>
+            compareByName(
+              { name: a.title?.trim() || "未命名文档" },
+              { name: b.title?.trim() || "未命名文档" },
+              sortPref.order
+            )
+        : (a: DocumentMeta, b: DocumentMeta) =>
+            compareByMtime(
+              { mtime: a.updatedAt },
+              { mtime: b.updatedAt },
+              sortPref.order
+            );
+
+    if (typeof documents.toSorted === "function") {
+      return documents.toSorted(comparator);
+    }
+    return [...documents].sort(comparator);
+  }, [documents, sortPref]);
 
   return (
-    <div className="flex h-full flex-col gap-6 overflow-y-auto px-3 py-4">
+    <div className="flex h-full flex-col gap-6 px-3 py-4">
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-sm font-semibold text-neutral-800">文档列表</h2>
-          <button
-            type="button"
-            onClick={createDocument}
-            disabled={!activeDocumentId}
-            className="inline-flex items-center gap-1 rounded-md border border-neutral-200 px-2 py-1 text-[11px] font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            新建
-          </button>
+          <div className="flex items-center gap-2">
+            <label htmlFor="document-sort" className="sr-only">
+              文档排序
+            </label>
+            <select
+              id="document-sort"
+              value={sortSelectValue}
+              onChange={(event) => {
+                const [by, order] = event.target.value.split(
+                  ":"
+                ) as [SortPref["by"], SortPref["order"]];
+                setSortPref({ by, order });
+              }}
+              className="rounded-md border border-neutral-200 bg-white px-2 py-1 text-[11px] font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900"
+            >
+              <option value="name:asc">名称 ↑</option>
+              <option value="name:desc">名称 ↓</option>
+              <option value="mtime:desc">时间（新→旧）</option>
+              <option value="mtime:asc">时间（旧→新）</option>
+            </select>
+            <button
+              type="button"
+              onClick={createDocument}
+              disabled={!activeDocumentId}
+              className="inline-flex items-center gap-1 rounded-md border border-neutral-200 px-2 py-1 text-[11px] font-medium text-neutral-600 transition hover:border-neutral-300 hover:text-neutral-900 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              新建
+            </button>
+          </div>
         </div>
 
         {!activeDocumentId ? (
@@ -111,7 +219,7 @@ function DocumentSidebar({
           </div>
         ) : (
           <ul className="space-y-2">
-            {documents.map((document) => {
+            {sortedDocuments.map((document) => {
               if (!document.id) {
                 return null;
               }
@@ -131,7 +239,11 @@ function DocumentSidebar({
                       <div className="truncate pr-6 text-sm font-medium">
                         {document.title || "未命名文档"}
                       </div>
-                      <div className={`text-[10px] ${isActive ? "text-neutral-400" : "text-neutral-400"}`}>
+                      <div
+                        className={`text-[10px] ${
+                          isActive ? "text-neutral-400" : "text-neutral-400"
+                        }`}
+                      >
                         更新 {formatUpdatedAt(document.updatedAt)}
                       </div>
                     </button>
@@ -139,7 +251,13 @@ function DocumentSidebar({
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (confirm(`确定要删除「${document.title || "未命名文档"}」吗？此操作不可恢复。`)) {
+                        if (
+                          confirm(
+                            `确定要删除「${
+                              document.title || "未命名文档"
+                            }」吗？此操作不可恢复。`
+                          )
+                        ) {
                           deleteDocument(document.id);
                         }
                       }}

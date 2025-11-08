@@ -5,7 +5,7 @@ import { BlockSelectionPlugin } from "@platejs/selection/react";
 import { getPluginTypes, isHotkey, KEYS } from "platejs";
 import type { PlateElementProps } from "platejs/react";
 
-import { BlockSelection } from "@/components/ui/block-selection";
+import { BlockSelection } from "@/components/ui/editor/block-selection";
 
 export const BlockSelectionKit = [
   BlockSelectionPlugin.configure(({ editor }) => ({
